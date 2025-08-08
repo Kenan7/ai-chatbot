@@ -1,0 +1,11 @@
+{
+    "type": "module",
+    "name": "ai-chatbot-scripts",
+    "version": "1.0.0",
+    "description": "Database and authentication testing scripts for AI Chatbot",
+    "scripts": {
+        "test-db": "node test-db-connection.js",
+        "test-auth": "node test-auth-flow.js",
+        "debug-auth": "node debug-auth-error.js"
+    }
+}

@@ -1,0 +1,1158 @@
+From de301aeac9b387186cca9f33b97f8a9b5e870840 Mon Sep 17 00:00:00 2001
+From: Kenan <kenankzmv@gmail.com>
+Date: Sun, 29 Jun 2025 20:13:58 +0300
+Subject: [PATCH 1/4] feat: add Azure SDK integration and enhance
+ authentication debugging scripts
+
+---
+ app/(chat)/api/chat/route.ts     |   8 ++
+ components/chat-header.tsx       |  28 ++----
+ components/greeting.tsx          |  62 +++++++++++-
+ components/suggested-actions.tsx |  24 ++---
+ lib/ai/prompts.ts                |  65 ++++++++++++-
+ lib/ai/providers.ts              |  32 +++---
+ package.json                     |   1 +
+ pnpm-lock.yaml                   |  45 ++++++++-
+ scripts/README.md                | 147 ++++++++++++++++++++++++++++
+ scripts/debug-auth-error.js      | 162 +++++++++++++++++++++++++++++++
+ scripts/package.json             |  11 +++
+ scripts/test-auth-flow.js        | 138 ++++++++++++++++++++++++++
+ scripts/test-db-connection.js    | 156 +++++++++++++++++++++++++++++
+ 13 files changed, 826 insertions(+), 53 deletions(-)
+ create mode 100644 scripts/README.md
+ create mode 100755 scripts/debug-auth-error.js
+ create mode 100644 scripts/package.json
+ create mode 100755 scripts/test-auth-flow.js
+ create mode 100755 scripts/test-db-connection.js
+
+diff --git a/app/(chat)/api/chat/route.ts b/app/(chat)/api/chat/route.ts
+index 1526e96..a79363b 100644
+--- a/app/(chat)/api/chat/route.ts
++++ b/app/(chat)/api/chat/route.ts
+@@ -146,6 +146,9 @@ export async function POST(request: Request) {
+ 
+     const stream = createDataStream({
+       execute: (dataStream) => {
++        console.log('Starting streamText with model:', selectedChatModel);
++        console.log('Provider:', typeof myProvider);
++        
+         const result = streamText({
+           model: myProvider.languageModel(selectedChatModel),
+           system: systemPrompt({ selectedChatModel, requestHints }),
+@@ -218,6 +221,8 @@ export async function POST(request: Request) {
+         result.mergeIntoDataStream(dataStream, {
+           sendReasoning: true,
+         });
++        
++        console.log('Stream setup completed');
+       },
+       onError: () => {
+         return 'Oops, an error occurred!';
+@@ -237,6 +242,9 @@ export async function POST(request: Request) {
+     if (error instanceof ChatSDKError) {
+       return error.toResponse();
+     }
++    
++    console.error('Unexpected error in chat route:', error);
++    return new ChatSDKError('offline:chat').toResponse();
+   }
+ }
+ 
+diff --git a/components/chat-header.tsx b/components/chat-header.tsx
+index f21f151..bb788e2 100644
+--- a/components/chat-header.tsx
++++ b/components/chat-header.tsx
+@@ -4,14 +4,15 @@ import Link from 'next/link';
+ import { useRouter } from 'next/navigation';
+ import { useWindowSize } from 'usehooks-ts';
+ 
+-import { ModelSelector } from '@/components/model-selector';
++// import { ModelSelector } from '@/components/model-selector';
+ import { SidebarToggle } from '@/components/sidebar-toggle';
+ import { Button } from '@/components/ui/button';
+ import { PlusIcon, VercelIcon } from './icons';
+ import { useSidebar } from './ui/sidebar';
+ import { memo } from 'react';
+ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+-import { type VisibilityType, VisibilitySelector } from './visibility-selector';
++import { type VisibilityType } from './visibility-selector';
++// import { VisibilitySelector } from './visibility-selector';
+ import type { Session } from 'next-auth';
+ 
+ function PureChatHeader({
+@@ -55,34 +56,23 @@ function PureChatHeader({
+         </Tooltip>
+       )}
+ 
+-      {!isReadonly && (
++      {/* Temporarily hidden - using defaults */}
++      {/* {!isReadonly && (
+         <ModelSelector
+           session={session}
+           selectedModelId={selectedModelId}
+           className="order-1 md:order-2"
+         />
+-      )}
++      )} */}
+ 
+-      {!isReadonly && (
++      {/* Temporarily hidden - using defaults */}
++      {/* {!isReadonly && (
+         <VisibilitySelector
+           chatId={chatId}
+           selectedVisibilityType={selectedVisibilityType}
+           className="order-1 md:order-3"
+         />
+-      )}
+-
+-      <Button
+-        className="bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-900 hidden md:flex py-1.5 px-2 h-fit md:h-[34px] order-4 md:ml-auto"
+-        asChild
+-      >
+-        <Link
+-          href={`https://vercel.com/new/clone?repository-url=https://github.com/vercel/ai-chatbot&env=AUTH_SECRET&envDescription=Learn more about how to get the API Keys for the application&envLink=https://github.com/vercel/ai-chatbot/blob/main/.env.example&demo-title=AI Chatbot&demo-description=An Open-Source AI Chatbot Template Built With Next.js and the AI SDK by Vercel.&demo-url=https://chat.vercel.ai&products=[{"type":"integration","protocol":"ai","productSlug":"grok","integrationSlug":"xai"},{"type":"integration","protocol":"storage","productSlug":"neon","integrationSlug":"neon"},{"type":"integration","protocol":"storage","productSlug":"upstash-kv","integrationSlug":"upstash"},{"type":"blob"}]`}
+-          target="_noblank"
+-        >
+-          <VercelIcon size={16} />
+-          Deploy with Vercel
+-        </Link>
+-      </Button>
++      )} */}
+     </header>
+   );
+ }
+diff --git a/components/greeting.tsx b/components/greeting.tsx
+index 9543c77..3eb8a47 100644
+--- a/components/greeting.tsx
++++ b/components/greeting.tsx
+@@ -1,19 +1,75 @@
+ import { motion } from 'framer-motion';
++import { useState, useEffect } from 'react';
++
++const greetings = [
++  "Your brand. Our magic.",
++  "Ideas to reality. Instantly.",
++  "Think it. Build it. Ship it.",
++  "Creative solutions. AI powered.",
++  "From concept to creation.",
++  "Your vision. Our execution."
++];
+ 
+ export const Greeting = () => {
++  const [currentIndex, setCurrentIndex] = useState(0);
++  const [displayText, setDisplayText] = useState('');
++  const [isTyping, setIsTyping] = useState(true);
++  const [isPaused, setIsPaused] = useState(false);
++
++  useEffect(() => {
++    if (isPaused) return;
++
++    const currentGreeting = greetings[currentIndex];
++    
++    if (isTyping) {
++      // Typing effect
++      if (displayText.length < currentGreeting.length) {
++        const timeout = setTimeout(() => {
++          setDisplayText(currentGreeting.slice(0, displayText.length + 1));
++        }, 50); // Typing speed
++        return () => clearTimeout(timeout);
++      } else {
++        // Finished typing, wait before erasing
++        const timeout = setTimeout(() => {
++          setIsTyping(false);
++        }, 2000); // Pause at end
++        return () => clearTimeout(timeout);
++      }
++    } else {
++      // Erasing effect
++      if (displayText.length > 0) {
++        const timeout = setTimeout(() => {
++          setDisplayText(displayText.slice(0, -1));
++        }, 30); // Erasing speed (faster)
++        return () => clearTimeout(timeout);
++      } else {
++        // Finished erasing, move to next greeting
++        setCurrentIndex((prev) => (prev + 1) % greetings.length);
++        setIsTyping(true);
++      }
++    }
++  }, [displayText, isTyping, currentIndex, isPaused]);
++
+   return (
+     <div
+       key="overview"
+       className="max-w-3xl mx-auto md:mt-20 px-8 size-full flex flex-col justify-center"
++      onMouseEnter={() => setIsPaused(true)}
++      onMouseLeave={() => setIsPaused(false)}
+     >
+       <motion.div
+         initial={{ opacity: 0, y: 10 }}
+         animate={{ opacity: 1, y: 0 }}
+         exit={{ opacity: 0, y: 10 }}
+         transition={{ delay: 0.5 }}
+-        className="text-2xl font-semibold"
++        className="text-2xl font-semibold min-h-[2rem] flex items-center"
+       >
+-        Hello there!
++        {displayText}
++        <motion.span
++          animate={{ opacity: [1, 0] }}
++          transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" }}
++          className="ml-1 w-0.5 h-6 bg-current"
++        />
+       </motion.div>
+       <motion.div
+         initial={{ opacity: 0, y: 10 }}
+@@ -22,7 +78,7 @@ export const Greeting = () => {
+         transition={{ delay: 0.6 }}
+         className="text-2xl text-zinc-500"
+       >
+-        How can I help you today?
++        Tell me what you need, we'll handle the rest.
+       </motion.div>
+     </div>
+   );
+diff --git a/components/suggested-actions.tsx b/components/suggested-actions.tsx
+index 430ab7a..8d0d092 100644
+--- a/components/suggested-actions.tsx
++++ b/components/suggested-actions.tsx
+@@ -19,24 +19,24 @@ function PureSuggestedActions({
+ }: SuggestedActionsProps) {
+   const suggestedActions = [
+     {
+-      title: 'What are the advantages',
+-      label: 'of using Next.js?',
+-      action: 'What are the advantages of using Next.js?',
++      title: 'I need custom packaging',
++      label: 'for my product line',
++      action: 'I need custom packaging for my product line',
+     },
+     {
+-      title: 'Write code to',
+-      label: `demonstrate djikstra's algorithm`,
+-      action: `Write code to demonstrate djikstra's algorithm`,
++      title: 'Can you help me',
++      label: 'design branded merch?',
++      action: 'Can you help me design branded merchandise for my business?',
+     },
+     {
+-      title: 'Help me write an essay',
+-      label: `about silicon valley`,
+-      action: `Help me write an essay about silicon valley`,
++      title: 'I’m in the food industry',
++      label: 'what are my packaging options?',
++      action: 'I’m in the food industry. What kind of packaging do you offer?',
+     },
+     {
+-      title: 'What is the weather',
+-      label: 'in San Francisco?',
+-      action: 'What is the weather in San Francisco?',
++      title: 'I already have a logo',
++      label: 'can you apply it to mockups?',
++      action: 'I already have a logo. Can you apply it to some packaging mockups?',
+     },
+   ];
+ 
+diff --git a/lib/ai/prompts.ts b/lib/ai/prompts.ts
+index c6ac160..f4c26a0 100644
+--- a/lib/ai/prompts.ts
++++ b/lib/ai/prompts.ts
+@@ -32,8 +32,69 @@ This is a guide for using artifacts tools: \`createDocument\` and \`updateDocume
+ Do not update document right after creating it. Wait for user feedback or request to update it.
+ `;
+ 
+-export const regularPrompt =
+-  'You are a friendly assistant! Keep your responses concise and helpful.';
++export const regularPrompt = `
++#### 1. *By Emotion or Internal Goal*
++
++🗨️ "We want our team to feel appreciated and motivated. Show me merch that creates a ‘feel-good’ emotional impact."
++
++•⁠  ⁠💡 Not about event or budget — but emotion.
++•⁠  ⁠Useful for *HR, **culture, or **employee wellness* themes.
++
++---
++
++#### 2. *By Distribution Channel*
++
++🗨️ "We’re shipping these items globally – what options are lightweight, compact, and easy to package for international delivery?"
++
++•⁠  ⁠🚚 Practical constraint.
++•⁠  ⁠Relevant for *remote teams, **international campaigns, or **logistics-conscious clients*.
++
++---
++
++#### 3. *By Time Constraint / Speed*
++
++🗨️ "We need something custom but ready within 7 days. What fast options do you recommend that still look good?"
++
++•⁠  ⁠⏱️ Urgency-based.
++•⁠  ⁠Good hook for *last-minute events*, common in corporate behavior.
++
++---
++
++#### 4. *By Desired Reaction*
++
++🗨️ "We want our gift to surprise people — make them smile, laugh, or say ‘wow’. What quirky and unexpected items do you have?"
++
++•⁠  ⁠🎉 For brands that want delight factor.
++•⁠  ⁠Puts *reaction/outcome* before category or price.
++
++---
++
++#### 5. *By Use Case or Physical Environment*
++
++🗨️ "We’re hosting an outdoor sports event. What merch items work well in sunny, active environments?"
++
++•⁠  ⁠🌞 Practical + setting-based.
++•⁠  ⁠Could be: “cold weather”, “office desks”, “school use”, etc.
++
++---
++
++#### 6. *By Demographics or User Persona*
++
++🗨️ "Our audience is mostly young women aged 20–30, very trend-sensitive. Suggest items that match their vibe."
++
++•⁠  ⁠👩🏽‍💻 Adds *psychographic* or *demographic fit*.
++•⁠  ⁠Ideal for campaigns targeting *specific user segments*.
++
++---
++
++#### 7. *By Cultural or Local Relevance*
++
++🗨️ "We want our campaign to feel local and culturally respectful in the Azerbaijan market. Any locally inspired gift ideas?"
++
++•⁠  ⁠🌍 Localization angle.
++•⁠  ⁠Could be expanded into "local crafts", "regional holidays", "language-specific packaging".
++
++`;
+ 
+ export interface RequestHints {
+   latitude: Geo['latitude'];
+diff --git a/lib/ai/providers.ts b/lib/ai/providers.ts
+index 9186be3..4e04a84 100644
+--- a/lib/ai/providers.ts
++++ b/lib/ai/providers.ts
+@@ -3,7 +3,7 @@ import {
+   extractReasoningMiddleware,
+   wrapLanguageModel,
+ } from 'ai';
+-import { xai } from '@ai-sdk/xai';
++import { azure, createAzure } from '@ai-sdk/azure';
+ import { isTestEnvironment } from '../constants';
+ import {
+   artifactModel,
+@@ -12,6 +12,21 @@ import {
+   titleModel,
+ } from './models.test';
+ 
++const azureProvider = createAzure({
++  baseURL: process.env.AZURE_ENDPOINT,
++  apiKey: process.env.AZURE_API_KEY,
++});
++
++// Custom provider that maps generic model names to Azure deployments
++const azureCustomProvider = customProvider({
++  languageModels: {
++    'chat-model': azureProvider.languageModel('gpt-4o'), // Assuming you have a gpt-4o deployment
++    'chat-model-reasoning': azureProvider.languageModel('gpt-4o'), // Using same model for reasoning
++    'title-model': azureProvider.languageModel('gpt-4o'),
++    'artifact-model': azureProvider.languageModel('gpt-4o'),
++  },
++});
++
+ export const myProvider = isTestEnvironment
+   ? customProvider({
+       languageModels: {
+@@ -21,17 +36,4 @@ export const myProvider = isTestEnvironment
+         'artifact-model': artifactModel,
+       },
+     })
+-  : customProvider({
+-      languageModels: {
+-        'chat-model': xai('grok-2-vision-1212'),
+-        'chat-model-reasoning': wrapLanguageModel({
+-          model: xai('grok-3-mini-beta'),
+-          middleware: extractReasoningMiddleware({ tagName: 'think' }),
+-        }),
+-        'title-model': xai('grok-2-1212'),
+-        'artifact-model': xai('grok-2-1212'),
+-      },
+-      imageModels: {
+-        'small-model': xai.image('grok-2-image'),
+-      },
+-    });
++  : azureCustomProvider;
+diff --git a/package.json b/package.json
+index f6e96b3..687e8bf 100644
+--- a/package.json
++++ b/package.json
+@@ -19,6 +19,7 @@
+     "test": "export PLAYWRIGHT=True && pnpm exec playwright test"
+   },
+   "dependencies": {
++    "@ai-sdk/azure": "^1.3.23",
+     "@ai-sdk/react": "^1.2.11",
+     "@ai-sdk/xai": "^1.2.15",
+     "@codemirror/lang-javascript": "^6.2.2",
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index 3baa486..bcbf1f6 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -8,6 +8,9 @@ importers:
+ 
+   .:
+     dependencies:
++      '@ai-sdk/azure':
++        specifier: ^1.3.23
++        version: 1.3.23(zod@3.24.2)
+       '@ai-sdk/react':
+         specifier: ^1.2.11
+         version: 1.2.11(react@19.0.0-rc-45804af1-20241021)(zod@3.24.2)
+@@ -273,18 +276,36 @@ importers:
+ 
+ packages:
+ 
++  '@ai-sdk/azure@1.3.23':
++    resolution: {integrity: sha512-vpsaPtU24RBVk/IMM5UylR/N4RtAuL2NZLWc7LJ3tvMTHu6pI46a7w+1qIwR3F6yO9ehWR8qvfLaBefJNFxaVw==}
++    engines: {node: '>=18'}
++    peerDependencies:
++      zod: ^3.0.0
++
+   '@ai-sdk/openai-compatible@0.2.13':
+     resolution: {integrity: sha512-tB+lL8Z3j0qDod/mvxwjrPhbLUHp/aQW+NvMoJaqeTtP+Vmv5qR800pncGczxn5WN0pllQm+7aIRDnm69XeSbg==}
+     engines: {node: '>=18'}
+     peerDependencies:
+       zod: ^3.0.0
+ 
++  '@ai-sdk/openai@1.3.22':
++    resolution: {integrity: sha512-QwA+2EkG0QyjVR+7h6FE7iOu2ivNqAVMm9UJZkVxxTk5OIq5fFJDTEI/zICEMuHImTTXR2JjsL6EirJ28Jc4cw==}
++    engines: {node: '>=18'}
++    peerDependencies:
++      zod: ^3.0.0
++
+   '@ai-sdk/provider-utils@2.2.7':
+     resolution: {integrity: sha512-kM0xS3GWg3aMChh9zfeM+80vEZfXzR3JEUBdycZLtbRZ2TRT8xOj3WodGHPb06sUK5yD7pAXC/P7ctsi2fvUGQ==}
+     engines: {node: '>=18'}
+     peerDependencies:
+       zod: ^3.23.8
+ 
++  '@ai-sdk/provider-utils@2.2.8':
++    resolution: {integrity: sha512-fqhG+4sCVv8x7nFzYnFo19ryhAa3w096Kmc3hWxMQfW/TubPOmt3A6tYZhl4mUfQWWQMsuSkLrtjlWuXBVSGQA==}
++    engines: {node: '>=18'}
++    peerDependencies:
++      zod: ^3.23.8
++
+   '@ai-sdk/provider@1.1.3':
+     resolution: {integrity: sha512-qZMxYJ0qqX/RfnuIaab+zp8UAeJn/ygXXAffR5I4N0n1IrvA6qBsjc8hXLmBiMV2zoXlifkacF7sEFnYnjBcqg==}
+     engines: {node: '>=18'}
+@@ -3968,12 +3989,25 @@ packages:
+ 
+ snapshots:
+ 
++  '@ai-sdk/azure@1.3.23(zod@3.24.2)':
++    dependencies:
++      '@ai-sdk/openai': 1.3.22(zod@3.24.2)
++      '@ai-sdk/provider': 1.1.3
++      '@ai-sdk/provider-utils': 2.2.8(zod@3.24.2)
++      zod: 3.24.2
++
+   '@ai-sdk/openai-compatible@0.2.13(zod@3.24.2)':
+     dependencies:
+       '@ai-sdk/provider': 1.1.3
+       '@ai-sdk/provider-utils': 2.2.7(zod@3.24.2)
+       zod: 3.24.2
+ 
++  '@ai-sdk/openai@1.3.22(zod@3.24.2)':
++    dependencies:
++      '@ai-sdk/provider': 1.1.3
++      '@ai-sdk/provider-utils': 2.2.8(zod@3.24.2)
++      zod: 3.24.2
++
+   '@ai-sdk/provider-utils@2.2.7(zod@3.24.2)':
+     dependencies:
+       '@ai-sdk/provider': 1.1.3
+@@ -3981,6 +4015,13 @@ snapshots:
+       secure-json-parse: 2.7.0
+       zod: 3.24.2
+ 
++  '@ai-sdk/provider-utils@2.2.8(zod@3.24.2)':
++    dependencies:
++      '@ai-sdk/provider': 1.1.3
++      nanoid: 3.3.11
++      secure-json-parse: 2.7.0
++      zod: 3.24.2
++
+   '@ai-sdk/provider@1.1.3':
+     dependencies:
+       json-schema: 0.4.0
+@@ -5790,7 +5831,7 @@ snapshots:
+     transitivePeerDependencies:
+       - supports-color
+ 
+-  eslint-module-utils@2.12.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.7(eslint-plugin-import@2.31.0)(eslint@8.57.1))(eslint@8.57.1):
++  eslint-module-utils@2.12.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.7)(eslint@8.57.1):
+     dependencies:
+       debug: 3.2.7
+     optionalDependencies:
+@@ -5812,7 +5853,7 @@ snapshots:
+       doctrine: 2.1.0
+       eslint: 8.57.1
+       eslint-import-resolver-node: 0.3.9
+-      eslint-module-utils: 2.12.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.7(eslint-plugin-import@2.31.0)(eslint@8.57.1))(eslint@8.57.1)
++      eslint-module-utils: 2.12.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.7)(eslint@8.57.1)
+       hasown: 2.0.2
+       is-core-module: 2.16.1
+       is-glob: 4.0.3
+diff --git a/scripts/README.md b/scripts/README.md
+new file mode 100644
+index 0000000..b3ea59f
+--- /dev/null
++++ b/scripts/README.md
+@@ -0,0 +1,147 @@
++# Database & Authentication Diagnostic Scripts
++
++This directory contains diagnostic scripts to help troubleshoot the authentication and database issues in the AI Chatbot application.
++
++## Prerequisites
++
++1. **Environment Variables**: Make sure you have a `.env.local` file in the project root with:
++   ```
++   POSTGRES_URL=your_neon_postgres_connection_string
++   AUTH_SECRET=your_auth_secret_key
++   ```
++
++2. **Dependencies**: Make sure all dependencies are installed:
++   ```bash
++   npm install
++   ```
++
++## Scripts
++
++### 1. `test-db-connection.js`
++Tests the basic database connection and operations.
++
++```bash
++node scripts/test-db-connection.js
++```
++
++**What it tests:**
++- Basic Postgres connection to Neon database
++- User table structure and existence
++- Basic CRUD operations on the User table
++- Guest user creation logic
++
++### 2. `test-auth-flow.js`
++Tests the specific authentication flow that's failing.
++
++```bash
++node scripts/test-auth-flow.js
++```
++
++**What it tests:**
++- `generateUUID()` function
++- `generateHashedPassword()` function
++- `createGuestUser()` function logic
++- Concurrent guest user creation
++
++### 3. `debug-auth-error.js`
++Comprehensive debugging script for the authentication error.
++
++```bash
++node scripts/debug-auth-error.js
++```
++
++**What it tests:**
++- Environment variable loading
++- Database connection in Next.js-like environment
++- Exact simulation of the failing authentication flow
++- Detailed error diagnostics
++
++## Common Issues and Solutions
++
++### 1. `POSTGRES_URL not set`
++**Problem**: Environment variable not loaded
++**Solution**: 
++- Check `.env.local` file exists in project root
++- Verify POSTGRES_URL is correctly formatted
++- Restart your development server
++
++### 2. `Connection refused`
++**Problem**: Cannot connect to Neon database
++**Solution**:
++- Verify Neon database is running
++- Check network connectivity
++- Verify connection string format
++
++### 3. `Table does not exist`
++**Problem**: Database migrations not run
++**Solution**:
++```bash
++npm run db:migrate
++```
++
++### 4. `Authentication failed`
++**Problem**: Invalid database credentials
++**Solution**:
++- Verify username/password in POSTGRES_URL
++- Check Neon database user permissions
++
++## Running the Scripts
++
++### Option 1: Direct execution
++```bash
++node scripts/test-db-connection.js
++node scripts/test-auth-flow.js
++node scripts/debug-auth-error.js
++```
++
++### Option 2: Using npm scripts (from scripts directory)
++```bash
++cd scripts
++npm run test-db
++npm run test-auth
++npm run debug-auth
++```
++
++## Expected Output
++
++If everything is working correctly, you should see:
++- ✅ Green checkmarks for successful operations
++- Detailed information about database structure
++- Successful user creation and cleanup
++
++If there are issues, you'll see:
++- ❌ Red X marks for failed operations
++- Detailed error messages with diagnostic information
++- 💡 Troubleshooting suggestions
++
++## Next Steps
++
++1. **If all scripts pass**: The issue is likely in the Next.js environment or authentication configuration
++2. **If scripts fail**: Follow the troubleshooting suggestions provided by the failing script
++3. **If database connection fails**: Check your Neon database configuration and credentials
++4. **If auth flow fails**: Check the authentication setup in your Next.js application
++
++## Troubleshooting the Original Error
++
++The original error you're seeing:
++```
++[auth][cause]: Error: An error occurred while executing a database query.
++    at createGuestUser (/Users/kenan/ai-chatbot/.next/server/chunks/[root-of-the-server]__cbdd7e09._.js:614:15)
++```
++
++This suggests the issue is specifically in the `createGuestUser` function. The most likely causes are:
++
++1. **Database connection issues** - Run `test-db-connection.js` to verify
++2. **Environment variables not loaded** - Run `debug-auth-error.js` to check
++3. **Schema mismatch** - Verify migrations are up to date
++4. **Concurrent request issues** - The timestamp-based email generation might cause conflicts
++
++## Additional Debugging
++
++If the scripts pass but your app still fails, try:
++
++1. **Check Next.js logs** for more detailed error information
++2. **Verify environment variables** are loaded in the Next.js environment
++3. **Check database connection pooling** settings
++4. **Review authentication middleware** configuration
++5. **Test with a different database** to isolate the issue 
+\ No newline at end of file
+diff --git a/scripts/debug-auth-error.js b/scripts/debug-auth-error.js
+new file mode 100755
+index 0000000..a6aac88
+--- /dev/null
++++ b/scripts/debug-auth-error.js
+@@ -0,0 +1,162 @@
++#!/usr/bin/env node
++
++/**
++ * Debug Authentication Error Script
++ * 
++ * This script helps debug the specific CallbackRouteError by:
++ * 1. Testing environment variable loading
++ * 2. Testing database connection in Next.js-like environment
++ * 3. Testing the exact createGuestUser function from queries.ts
++ * 4. Providing detailed error diagnostics
++ * 
++ * Usage: node scripts/debug-auth-error.js
++ */
++
++import { config } from 'dotenv';
++
++// Load environment variables the same way Next.js does
++config({ path: '.env.local' });
++config({ path: '.env' });
++
++console.log('🐛 Debugging Authentication Error...\n');
++
++async function debugAuthError() {
++  try {
++    console.log('1️⃣ Checking environment variables...');
++    
++    const requiredEnvVars = ['POSTGRES_URL', 'AUTH_SECRET'];
++    const missingVars = [];
++    
++    for (const envVar of requiredEnvVars) {
++      if (process.env[envVar]) {
++        console.log(`✅ ${envVar}: ${envVar === 'POSTGRES_URL' ? process.env[envVar].substring(0, 30) + '...' : '[SET]'}`);
++      } else {
++        console.log(`❌ ${envVar}: NOT SET`);
++        missingVars.push(envVar);
++      }
++    }
++    
++    if (missingVars.length > 0) {
++      console.error(`\n❌ Missing required environment variables: ${missingVars.join(', ')}`);
++      console.error('Please set these in your .env.local file');
++      return;
++    }
++    console.log();
++
++    console.log('2️⃣ Testing database connection...');
++    
++    // Import the exact same way as in queries.ts
++    const postgres = (await import('postgres')).default;
++    const { drizzle } = await import('drizzle-orm/postgres-js');
++    
++    const client = postgres(process.env.POSTGRES_URL);
++    const db = drizzle(client);
++    
++    // Test basic connection
++    const connectionTest = await client`SELECT 1 as test`;
++    console.log(`✅ Database connection successful: ${connectionTest[0].test === 1 ? 'OK' : 'FAILED'}`);
++    
++    console.log('3️⃣ Testing the exact createGuestUser function...');
++    
++    // Import the exact functions used in createGuestUser
++    const { user } = await import('../lib/db/schema.js');
++    const { generateUUID } = await import('../lib/utils.js');
++    const { generateHashedPassword } = await import('../lib/db/utils.js');
++    
++    // Simulate the exact createGuestUser function
++    const email = `guest-${Date.now()}`;
++    const password = generateHashedPassword(generateUUID());
++    
++    console.log(`   Email: ${email}`);
++    console.log(`   Password hash length: ${password.length}`);
++    
++    try {
++      const result = await db.insert(user).values({ email, password }).returning({
++        id: user.id,
++        email: user.email,
++      });
++      
++      console.log('✅ createGuestUser simulation successful:');
++      console.log(`   Created user ID: ${result[0].id}`);
++      console.log(`   Created user email: ${result[0].email}`);
++      
++      // Clean up
++      const { eq } = await import('drizzle-orm');
++      await db.delete(user).where(eq(user.email, email));
++      console.log('✅ Test user cleaned up');
++      
++    } catch (dbError) {
++      console.error('❌ Database operation failed:');
++      console.error(`   Error message: ${dbError.message}`);
++      console.error(`   Error code: ${dbError.code}`);
++      console.error(`   Error detail: ${dbError.detail}`);
++      
++      // Provide specific diagnostics
++      if (dbError.code === '23505') {
++        console.error('\n💡 Unique constraint violation - possible causes:');
++        console.error('   - Duplicate email (very unlikely with timestamp)');
++        console.error('   - Duplicate ID (UUID collision - extremely rare)');
++      } else if (dbError.code === '23502') {
++        console.error('\n💡 Not null constraint violation - check:');
++        console.error('   - Required fields are being set');
++        console.error('   - Schema matches expectations');
++      } else if (dbError.code === '42P01') {
++        console.error('\n💡 Table does not exist - run:');
++        console.error('   npm run db:migrate');
++      } else if (dbError.code === '28P01') {
++        console.error('\n💡 Authentication failed - check:');
++        console.error('   - POSTGRES_URL credentials');
++        console.error('   - Database user permissions');
++      }
++      
++      throw dbError;
++    }
++    
++    console.log('\n4️⃣ Testing auth configuration...');
++    
++    // Check if AUTH_SECRET is properly formatted
++    const authSecret = process.env.AUTH_SECRET;
++    if (authSecret) {
++      console.log(`✅ AUTH_SECRET length: ${authSecret.length} characters`);
++      if (authSecret.length < 32) {
++        console.warn('⚠️  AUTH_SECRET should be at least 32 characters long');
++      }
++    }
++    
++    console.log('\n5️⃣ Testing Next.js environment simulation...');
++    
++    // Test if the issue is related to server-only imports
++    try {
++      // This should work in Node.js but might fail in browser-like environments
++      const serverOnlyTest = await import('server-only');
++      console.log('✅ server-only import successful');
++    } catch (serverOnlyError) {
++      console.log('ℹ️  server-only import failed (this might be expected)');
++    }
++    
++    await client.end();
++    
++    console.log('\n🎉 Debug completed successfully!');
++    console.log('   If this script works but your app doesn\'t, the issue might be:');
++    console.log('   1. Environment variables not loaded properly in Next.js');
++    console.log('   2. Database connection timing/pooling issues');
++    console.log('   3. Middleware or authentication flow problems');
++    console.log('   4. Next.js build/runtime environment differences');
++    
++  } catch (error) {
++    console.error('\n❌ Debug script failed:');
++    console.error(`   Error: ${error.message}`);
++    console.error(`   Stack: ${error.stack}`);
++    
++    // Provide troubleshooting steps
++    console.error('\n🔧 Troubleshooting steps:');
++    console.error('   1. Verify .env.local file exists and contains POSTGRES_URL');
++    console.error('   2. Test database connection manually');
++    console.error('   3. Check if migrations have been run');
++    console.error('   4. Verify Neon database is accessible');
++    console.error('   5. Check Next.js server logs for more details');
++  }
++}
++
++// Run the debug
++debugAuthError().catch(console.error); 
+\ No newline at end of file
+diff --git a/scripts/package.json b/scripts/package.json
+new file mode 100644
+index 0000000..1728462
+--- /dev/null
++++ b/scripts/package.json
+@@ -0,0 +1,11 @@
++{
++    "type": "module",
++    "name": "ai-chatbot-scripts",
++    "version": "1.0.0",
++    "description": "Database and authentication testing scripts for AI Chatbot",
++    "scripts": {
++        "test-db": "node test-db-connection.js",
++        "test-auth": "node test-auth-flow.js",
++        "debug-auth": "node debug-auth-error.js"
++    }
++}
+\ No newline at end of file
+diff --git a/scripts/test-auth-flow.js b/scripts/test-auth-flow.js
+new file mode 100755
+index 0000000..f9b3d88
+--- /dev/null
++++ b/scripts/test-auth-flow.js
+@@ -0,0 +1,138 @@
++#!/usr/bin/env node
++
++/**
++ * Authentication Flow Test Script
++ * 
++ * This script tests the specific authentication flow that's failing:
++ * 1. Tests the createGuestUser function directly
++ * 2. Tests the generateHashedPassword function
++ * 3. Tests the generateUUID function
++ * 4. Simulates the exact auth flow
++ * 
++ * Usage: node scripts/test-auth-flow.js
++ */
++
++import { config } from 'dotenv';
++import postgres from 'postgres';
++import { drizzle } from 'drizzle-orm/postgres-js';
++import { user } from '../lib/db/schema.js';
++import { generateUUID } from '../lib/utils.js';
++import { generateHashedPassword } from '../lib/db/utils.js';
++
++// Load environment variables
++config({ path: '.env.local' });
++
++const POSTGRES_URL = process.env.POSTGRES_URL;
++
++if (!POSTGRES_URL) {
++  console.error('❌ POSTGRES_URL environment variable is not set');
++  process.exit(1);
++}
++
++console.log('🔐 Testing Authentication Flow...\n');
++
++async function testCreateGuestUser() {
++  const client = postgres(POSTGRES_URL);
++  const db = drizzle(client);
++
++  try {
++    console.log('1️⃣ Testing utility functions...');
++    
++    // Test generateUUID
++    const testUUID = generateUUID();
++    console.log(`✅ generateUUID: ${testUUID}`);
++    
++    // Test generateHashedPassword
++    const testPassword = generateHashedPassword(testUUID);
++    console.log(`✅ generateHashedPassword: ${testPassword.substring(0, 20)}...`);
++    console.log();
++
++    console.log('2️⃣ Testing createGuestUser function logic...');
++    
++    // Simulate the exact logic from createGuestUser
++    const email = `guest-${Date.now()}`;
++    const password = generateHashedPassword(generateUUID());
++    
++    console.log(`   Generated email: ${email}`);
++    console.log(`   Generated password hash: ${password.substring(0, 20)}...`);
++    
++    // Test the exact database operation
++    console.log('   Attempting database insert...');
++    const result = await db.insert(user).values({ email, password }).returning({
++      id: user.id,
++      email: user.email,
++    });
++    
++    console.log('✅ Guest user created successfully:');
++    console.log(`   ID: ${result[0].id}`);
++    console.log(`   Email: ${result[0].email}`);
++    
++    // Test that we can retrieve it
++    const retrieved = await db.select().from(user).where(eq(user.email, email));
++    console.log(`✅ Guest user retrieved: ${retrieved.length} record(s) found`);
++    
++    // Clean up
++    await db.delete(user).where(eq(user.email, email));
++    console.log('✅ Test guest user cleaned up\n');
++
++    console.log('3️⃣ Testing multiple guest user creations (simulating concurrent requests)...');
++    
++    const promises = [];
++    for (let i = 0; i < 3; i++) {
++      promises.push(createSingleGuestUser(db, i));
++    }
++    
++    const results = await Promise.all(promises);
++    console.log(`✅ Created ${results.length} guest users concurrently`);
++    
++    // Clean up all test users
++    for (const result of results) {
++      await db.delete(user).where(eq(user.email, result.email));
++    }
++    console.log('✅ All test guest users cleaned up\n');
++
++    console.log('🎉 Authentication flow test completed successfully!');
++    console.log('   The createGuestUser logic appears to be working correctly.');
++    console.log('   The issue might be:');
++    console.log('   - Environment variables not properly loaded in the Next.js context');
++    console.log('   - Database connection pooling issues');
++    console.log('   - Middleware or authentication configuration problems');
++
++  } catch (error) {
++    console.error('❌ Authentication flow test failed:');
++    console.error(`   Error: ${error.message}`);
++    console.error(`   Stack: ${error.stack}`);
++    
++    if (error.message.includes('duplicate key value')) {
++      console.error('\n💡 Duplicate key error - this could indicate:');
++      console.error('   - Concurrent requests creating users with same timestamp');
++      console.error('   - UUID generation collision (very rare)');
++    } else if (error.message.includes('null value in column')) {
++      console.error('\n💡 Null value error - check if:');
++      console.error('   - Required fields are being set correctly');
++      console.error('   - Database schema matches expectations');
++    }
++  } finally {
++    await client.end();
++    console.log('\n🔌 Database connection closed');
++  }
++}
++
++async function createSingleGuestUser(db, index) {
++  const email = `guest-${Date.now()}-${index}`;
++  const password = generateHashedPassword(generateUUID());
++  
++  const result = await db.insert(user).values({ email, password }).returning({
++    id: user.id,
++    email: user.email,
++  });
++  
++  console.log(`   Guest user ${index + 1}: ${result[0].email}`);
++  return result[0];
++}
++
++// Import eq from drizzle-orm
++import { eq } from 'drizzle-orm';
++
++// Run the test
++testCreateGuestUser().catch(console.error); 
+\ No newline at end of file
+diff --git a/scripts/test-db-connection.js b/scripts/test-db-connection.js
+new file mode 100755
+index 0000000..74ca6dd
+--- /dev/null
++++ b/scripts/test-db-connection.js
+@@ -0,0 +1,156 @@
++#!/usr/bin/env node
++
++/**
++ * Database Connection Test Script for Neon Postgres
++ * 
++ * This script tests:
++ * 1. Basic database connection
++ * 2. User table operations
++ * 3. Guest user creation functionality
++ * 
++ * Usage: node scripts/test-db-connection.js
++ * Make sure to set POSTGRES_URL in your environment
++ */
++
++import { config } from 'dotenv';
++import postgres from 'postgres';
++import { drizzle } from 'drizzle-orm/postgres-js';
++import { user } from '../lib/db/schema.js';
++import { eq } from 'drizzle-orm';
++
++// Load environment variables
++config({ path: '.env.local' });
++
++const POSTGRES_URL = process.env.POSTGRES_URL;
++
++if (!POSTGRES_URL) {
++  console.error('❌ POSTGRES_URL environment variable is not set');
++  console.error('Please set POSTGRES_URL in your .env.local file');
++  process.exit(1);
++}
++
++console.log('🔧 Testing Neon Postgres Database Connection...\n');
++
++async function testDatabaseConnection() {
++  let client;
++  let db;
++
++  try {
++    // Test 1: Basic connection
++    console.log('1️⃣ Testing basic connection...');
++    client = postgres(POSTGRES_URL);
++    db = drizzle(client);
++    
++    // Simple query to test connection
++    const result = await client`SELECT version()`;
++    console.log('✅ Database connected successfully');
++    console.log(`   PostgreSQL version: ${result[0].version.split(' ')[0]} ${result[0].version.split(' ')[1]}\n`);
++
++    // Test 2: Check if User table exists
++    console.log('2️⃣ Checking User table structure...');
++    const tableInfo = await client`
++      SELECT column_name, data_type, is_nullable, column_default 
++      FROM information_schema.columns 
++      WHERE table_name = 'User' 
++      ORDER BY ordinal_position
++    `;
++    
++    if (tableInfo.length === 0) {
++      console.log('❌ User table does not exist');
++      console.log('   Run migrations first: npm run db:migrate');
++      return;
++    }
++    
++    console.log('✅ User table exists with columns:');
++    tableInfo.forEach(col => {
++      console.log(`   - ${col.column_name}: ${col.data_type} ${col.is_nullable === 'NO' ? 'NOT NULL' : 'NULLABLE'} ${col.column_default ? `DEFAULT ${col.column_default}` : ''}`);
++    });
++    console.log();
++
++    // Test 3: Test user operations
++    console.log('3️⃣ Testing user operations...');
++    
++    // Count existing users
++    const userCount = await db.select().from(user);
++    console.log(`   Current user count: ${userCount.length}`);
++
++    // Test creating a guest user (similar to createGuestUser function)
++    const testEmail = `test-guest-${Date.now()}@test.com`;
++    const testPassword = 'test-password-hash';
++    
++    console.log(`   Creating test user: ${testEmail}`);
++    
++    const insertResult = await db.insert(user).values({
++      email: testEmail,
++      password: testPassword
++    }).returning({
++      id: user.id,
++      email: user.email,
++    });
++    
++    console.log('✅ Test user created successfully:');
++    console.log(`   ID: ${insertResult[0].id}`);
++    console.log(`   Email: ${insertResult[0].email}`);
++
++    // Test reading the user back
++    const retrievedUser = await db.select().from(user).where(eq(user.email, testEmail));
++    console.log('✅ Test user retrieved successfully');
++
++    // Clean up test user
++    await db.delete(user).where(eq(user.email, testEmail));
++    console.log('✅ Test user cleaned up\n');
++
++    // Test 4: Test the actual createGuestUser logic
++    console.log('4️⃣ Testing createGuestUser logic...');
++    const guestEmail = `guest-${Date.now()}`;
++    const guestPassword = `guest-password-${Math.random().toString(36).substring(7)}`;
++    
++    const guestResult = await db.insert(user).values({
++      email: guestEmail,
++      password: guestPassword
++    }).returning({
++      id: user.id,
++      email: user.email,
++    });
++    
++    console.log('✅ Guest user creation logic works:');
++    console.log(`   ID: ${guestResult[0].id}`);
++    console.log(`   Email: ${guestResult[0].email}`);
++    
++    // Clean up guest user
++    await db.delete(user).where(eq(user.email, guestEmail));
++    console.log('✅ Guest user cleaned up\n');
++
++    console.log('🎉 All database tests passed successfully!');
++    console.log('   The database connection and user operations are working correctly.');
++    console.log('   The issue might be in the authentication flow or environment configuration.');
++
++  } catch (error) {
++    console.error('❌ Database test failed:');
++    console.error(`   Error: ${error.message}`);
++    console.error(`   Code: ${error.code || 'N/A'}`);
++    console.error(`   Detail: ${error.detail || 'N/A'}`);
++    
++    if (error.message.includes('connect ECONNREFUSED')) {
++      console.error('\n💡 Connection refused - check if:');
++      console.error('   - POSTGRES_URL is correct');
++      console.error('   - Neon database is accessible');
++      console.error('   - Network connectivity is working');
++    } else if (error.message.includes('password authentication failed')) {
++      console.error('\n💡 Authentication failed - check if:');
++      console.error('   - Database credentials are correct');
++      console.error('   - POSTGRES_URL includes the correct username/password');
++    } else if (error.message.includes('relation') && error.message.includes('does not exist')) {
++      console.error('\n💡 Table does not exist - run migrations:');
++      console.error('   npm run db:migrate');
++    }
++  } finally {
++    if (client) {
++      await client.end();
++      console.log('\n🔌 Database connection closed');
++    }
++  }
++}
++
++// Run the test
++testDatabaseConnection().catch(console.error); 
+\ No newline at end of file
+-- 
+2.43.0
+

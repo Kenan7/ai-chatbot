@@ -1,0 +1,315 @@
+From e4f7dcbbd03aba587d8bf90713b578acd35a5e16 Mon Sep 17 00:00:00 2001
+From: Kenan <kenankzmv@gmail.com>
+Date: Thu, 7 Aug 2025 19:07:32 +0200
+Subject: [PATCH 3/4] feat: integrate Google Generative AI and update Azure
+ model configurations
+
+---
+ artifacts/image/server.ts |  16 ++----
+ lib/ai/prompts.ts         | 109 ++++++++++++--------------------------
+ lib/ai/providers.ts       |  26 +++++++--
+ package.json              |   5 +-
+ pnpm-lock.yaml            |  15 ++++++
+ 5 files changed, 78 insertions(+), 93 deletions(-)
+
+diff --git a/artifacts/image/server.ts b/artifacts/image/server.ts
+index d53c8c1..743a848 100644
+--- a/artifacts/image/server.ts
++++ b/artifacts/image/server.ts
+@@ -14,14 +14,10 @@ export const imageDocumentHandler = createDocumentHandler<'image'>({
+   kind: 'image',
+   onCreateDocument: async ({ title, dataStream }) => {
+     // Check if this is a logo/product mockup generation request
+-    const isLogoRequest = title.toLowerCase().includes('logo') || 
+-                         title.toLowerCase().includes('brand') ||
++    const isLogoRequest = title.toLowerCase().includes('brand') ||
+                          title.toLowerCase().includes('design') ||
+                          title.toLowerCase().includes('product') ||
+-                         title.toLowerCase().includes('mockup') ||
+-                         title.toLowerCase().includes('packaging') ||
+-                         title.toLowerCase().includes('merchandise') ||
+-                         title.toLowerCase().includes('branding');
++                         title.toLowerCase().includes('mockup')
+     
+     if (isLogoRequest) {
+       // Return all 4 mock logos as a JSON string
+@@ -51,14 +47,10 @@ export const imageDocumentHandler = createDocumentHandler<'image'>({
+   },
+   onUpdateDocument: async ({ description, dataStream }) => {
+     // Check if this is a logo/product mockup generation request
+-    const isLogoRequest = description.toLowerCase().includes('logo') || 
+-                         description.toLowerCase().includes('brand') ||
++    const isLogoRequest = description.toLowerCase().includes('brand') ||
+                          description.toLowerCase().includes('design') ||
+                          description.toLowerCase().includes('product') ||
+-                         description.toLowerCase().includes('mockup') ||
+-                         description.toLowerCase().includes('packaging') ||
+-                         description.toLowerCase().includes('merchandise') ||
+-                         description.toLowerCase().includes('branding');
++                         description.toLowerCase().includes('mockup')
+     
+     if (isLogoRequest) {
+       // Return all 4 mock logos as a JSON string
+diff --git a/lib/ai/prompts.ts b/lib/ai/prompts.ts
+index f4c26a0..4df0372 100644
+--- a/lib/ai/prompts.ts
++++ b/lib/ai/prompts.ts
+@@ -2,98 +2,57 @@ import type { ArtifactKind } from '@/components/artifact';
+ import type { Geo } from '@vercel/functions';
+ 
+ export const artifactsPrompt = `
+-Artifacts is a special user interface mode that helps users with writing, editing, and other content creation tasks. When artifact is open, it is on the right side of the screen, while the conversation is on the left side. When creating or updating documents, changes are reflected in real-time on the artifacts and visible to the user.
++Artifacts is a special user interface mode that helps users with image generationtasks. When artifact is open, it is on the right side of the screen, while the conversation is on the left side. When generating images changes are reflected in real-time on the artifacts and visible to the user.
+ 
+-When asked to write code, always use artifacts. When writing code, specify the language in the backticks, e.g. \`\`\`python\`code here\`\`\`. The default language is Python. Other languages are not yet supported, so let the user know if they request a different language.
++When asked to create logos, branding designs, product mockups, packaging examples, or merchandise designs, use the image artifact type. This will show professional product mockup examples that demonstrate how branding could look on real products.
+ 
+-DO NOT UPDATE DOCUMENTS IMMEDIATELY AFTER CREATING THEM. WAIT FOR USER FEEDBACK OR REQUEST TO UPDATE IT.
++For logo, branding, product mockup, packaging, or merchandise design requests (use kind: 'image')
+ 
+-This is a guide for using artifacts tools: \`createDocument\` and \`updateDocument\`, which render content on a artifacts beside the conversation.
+-
+-**When to use \`createDocument\`:**
+-- For substantial content (>10 lines) or code
+-- For content users will likely save/reuse (emails, code, essays, etc.)
+-- When explicitly requested to create a document
+-- For when content contains a single code snippet
+-
+-**When NOT to use \`createDocument\`:**
+-- For informational/explanatory content
+-- For conversational responses
+-- When asked to keep it in chat
+-
+-**Using \`updateDocument\`:**
+-- Default to full document rewrites for major changes
+-- Use targeted updates only for specific, isolated changes
+-- Follow user instructions for which parts to modify
+-
+-**When NOT to use \`updateDocument\`:**
+-- Immediately after creating a document
+-
+-Do not update document right after creating it. Wait for user feedback or request to update it.
+ `;
+ 
+ export const regularPrompt = `
+-#### 1. *By Emotion or Internal Goal*
+-
+-🗨️ "We want our team to feel appreciated and motivated. Show me merch that creates a ‘feel-good’ emotional impact."
+-
+-•⁠  ⁠💡 Not about event or budget — but emotion.
+-•⁠  ⁠Useful for *HR, **culture, or **employee wellness* themes.
+-
+----
+-
+-#### 2. *By Distribution Channel*
+-
+-🗨️ "We’re shipping these items globally – what options are lightweight, compact, and easy to package for international delivery?"
+-
+-•⁠  ⁠🚚 Practical constraint.
+-•⁠  ⁠Relevant for *remote teams, **international campaigns, or **logistics-conscious clients*.
+-
+----
+-
+-#### 3. *By Time Constraint / Speed*
+-
+-🗨️ "We need something custom but ready within 7 days. What fast options do you recommend that still look good?"
+-
+-•⁠  ⁠⏱️ Urgency-based.
+-•⁠  ⁠Good hook for *last-minute events*, common in corporate behavior.
+-
+----
+-
+-#### 4. *By Desired Reaction*
+-
+-🗨️ "We want our gift to surprise people — make them smile, laugh, or say ‘wow’. What quirky and unexpected items do you have?"
+-
+-•⁠  ⁠🎉 For brands that want delight factor.
+-•⁠  ⁠Puts *reaction/outcome* before category or price.
+-
+----
+-
+-#### 5. *By Use Case or Physical Environment*
++You are an expert Creative Strategist and Brand Merchandising consultant. Your primary purpose is to act as an inspirational partner, guiding users to define and develop ideas for corporate gifts, event materials, and promotional campaigns.
+ 
+-🗨️ "We’re hosting an outdoor sports event. What merch items work well in sunny, active environments?"
++Your personality is a blend of a savvy **Sales Consultant** and an innovative **Creative Account Manager**. You are insightful, professional, and full of creative energy.
+ 
+-•⁠  ⁠🌞 Practical + setting-based.
+-•⁠  ⁠Could be: “cold weather”, “office desks”, “school use”, etc.
++Your core task is to systematically deconstruct the user's "Problem" to co-create a "Solution" brief. Follow this structured conversational flow:
+ 
+----
++## 1. Discovery Phase: Understanding the "Problem"
+ 
+-#### 6. *By Demographics or User Persona*
++First, you must understand the user's context.
+ 
+-🗨️ "Our audience is mostly young women aged 20–30, very trend-sensitive. Suggest items that match their vibe."
++### The "Who" - The Client & Brand
++Start by identifying the user and their organization. Ask clarifying questions to understand:
++* **Role:** Are they from HR, Brand Management, Procurement, or an Innovation Team?
++* **Industry:** What sector do they operate in? (e.g., Insurance, Banking, Energy, Consulting, Telecom).
+ 
+-•⁠  ⁠👩🏽‍💻 Adds *psychographic* or *demographic fit*.
+-•⁠  ⁠Ideal for campaigns targeting *specific user segments*.
++### The "What" - The Project & Purpose
++Next, dive deep into the specifics of their project. Your goal is to get a complete picture by asking about:
++* **Purpose:** Is this for an internal event, a public campaign, or something else?
++* **Target Audience:** Who are they trying to reach or impress?
++* **Theme:** Is there an existing theme or one that needs to be created?
++* **Items & Packaging:** What are their initial thoughts on products and presentation?
++* **Branding:** How should the company's brand be incorporated?
++* **Constraints:** What are the Quantity, Budget, and Deadline?
+ 
+----
++## 2. Solution Phase: Applying Your Expertise
+ 
+-#### 7. *By Cultural or Local Relevance*
++As you gather information, seamlessly weave in your expertise to guide and inspire the user. You must demonstrate knowledge across two key areas:
+ 
+-🗨️ "We want our campaign to feel local and culturally respectful in the Azerbaijan market. Any locally inspired gift ideas?"
++### Strategic Skillset
++Apply your understanding of business and human psychology. Your insights should reflect knowledge of:
++* **Sales & Negotiation:** Frame ideas in terms of value and ROI.
++* **Marketing & Buyer Psychology:** Explain *why* an idea will resonate with the target audience.
++* **Conceptual Thinking:** Connect disparate ideas into a cohesive and powerful concept.
+ 
+-•⁠  ⁠🌍 Localization angle.
+-•⁠  ⁠Could be expanded into "local crafts", "regional holidays", "language-specific packaging".
++### Creative & Practical Knowledge
++Provide concrete, actionable ideas based on your domain expertise in:
++* **Merchandising Logic:** Suggest how items can be displayed or distributed effectively.
++* **Packaging Systems:** Propose innovative and practical packaging solutions.
++* **Product Options:** Discuss the pros and cons of "ready-to-go," "custom," and "handmade" items.
++* **Production Methods:** Inform the user about different possibilities like printing methods, materials, etc.
+ 
++Your final output should be a clear, synthesized summary of the user's needs and your inspired recommendations, ready to be handed off for visualization.
+ `;
+ 
+ export interface RequestHints {
+diff --git a/lib/ai/providers.ts b/lib/ai/providers.ts
+index 4e04a84..31d1fd9 100644
+--- a/lib/ai/providers.ts
++++ b/lib/ai/providers.ts
+@@ -4,6 +4,8 @@ import {
+   wrapLanguageModel,
+ } from 'ai';
+ import { azure, createAzure } from '@ai-sdk/azure';
++import { createGoogleGenerativeAI } from '@ai-sdk/google';
++
+ import { isTestEnvironment } from '../constants';
+ import {
+   artifactModel,
+@@ -12,6 +14,7 @@ import {
+   titleModel,
+ } from './models.test';
+ 
++
+ const azureProvider = createAzure({
+   baseURL: process.env.AZURE_ENDPOINT,
+   apiKey: process.env.AZURE_API_KEY,
+@@ -20,10 +23,23 @@ const azureProvider = createAzure({
+ // Custom provider that maps generic model names to Azure deployments
+ const azureCustomProvider = customProvider({
+   languageModels: {
+-    'chat-model': azureProvider.languageModel('gpt-4o'), // Assuming you have a gpt-4o deployment
+-    'chat-model-reasoning': azureProvider.languageModel('gpt-4o'), // Using same model for reasoning
+-    'title-model': azureProvider.languageModel('gpt-4o'),
+-    'artifact-model': azureProvider.languageModel('gpt-4o'),
++    'chat-model': azureProvider.languageModel('grok-3-mini'),
++    'chat-model-reasoning': azureProvider.languageModel('grok-3-mini'),
++    'title-model': azureProvider.languageModel('grok-3-mini'),
++    'artifact-model': azureProvider.languageModel('grok-3-mini'),
++  },
++});
++
++const googleProvider = createGoogleGenerativeAI({
++  apiKey: process.env.GEMINI_API_KEY,
++});
++
++const googleCustomProvider = customProvider({
++  languageModels: {
++    'chat-model': googleProvider.languageModel('gemini-2.5-flash-lite-preview-06-17'),
++    'chat-model-reasoning': googleProvider.languageModel('gemini-2.5-flash-lite-preview-06-17'),
++    'title-model': googleProvider.languageModel('gemini-2.5-flash-lite-preview-06-17'),
++    'artifact-model': googleProvider.languageModel('gemini-2.5-flash-lite-preview-06-17'),
+   },
+ });
+ 
+@@ -36,4 +52,4 @@ export const myProvider = isTestEnvironment
+         'artifact-model': artifactModel,
+       },
+     })
+-  : azureCustomProvider;
++  : googleCustomProvider;
+diff --git a/package.json b/package.json
+index 687e8bf..726a7af 100644
+--- a/package.json
++++ b/package.json
+@@ -5,6 +5,8 @@
+   "scripts": {
+     "dev": "next dev --turbo",
+     "build": "tsx lib/db/migrate && next build",
++    "build:cf": "tsx lib/db/migrate && rm -rf .next/cache && next build && rm -rf .next/cache",
++    "build:static": "tsx lib/db/migrate && next build && next export",
+     "start": "next start",
+     "lint": "next lint && biome lint --write --unsafe",
+     "lint:fix": "next lint --fix && biome lint --write --unsafe",
+@@ -20,6 +22,7 @@
+   },
+   "dependencies": {
+     "@ai-sdk/azure": "^1.3.23",
++    "@ai-sdk/google": "^1.2.19",
+     "@ai-sdk/react": "^1.2.11",
+     "@ai-sdk/xai": "^1.2.15",
+     "@codemirror/lang-javascript": "^6.2.2",
+@@ -111,4 +114,4 @@
+     "typescript": "^5.6.3"
+   },
+   "packageManager": "pnpm@9.12.3"
+-}
++}
+\ No newline at end of file
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index bcbf1f6..7a7e52c 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -11,6 +11,9 @@ importers:
+       '@ai-sdk/azure':
+         specifier: ^1.3.23
+         version: 1.3.23(zod@3.24.2)
++      '@ai-sdk/google':
++        specifier: ^1.2.19
++        version: 1.2.19(zod@3.24.2)
+       '@ai-sdk/react':
+         specifier: ^1.2.11
+         version: 1.2.11(react@19.0.0-rc-45804af1-20241021)(zod@3.24.2)
+@@ -282,6 +285,12 @@ packages:
+     peerDependencies:
+       zod: ^3.0.0
+ 
++  '@ai-sdk/google@1.2.19':
++    resolution: {integrity: sha512-Xgl6eftIRQ4srUdCzxM112JuewVMij5q4JLcNmHcB68Bxn9dpr3MVUSPlJwmameuiQuISIA8lMB+iRiRbFsaqA==}
++    engines: {node: '>=18'}
++    peerDependencies:
++      zod: ^3.0.0
++
+   '@ai-sdk/openai-compatible@0.2.13':
+     resolution: {integrity: sha512-tB+lL8Z3j0qDod/mvxwjrPhbLUHp/aQW+NvMoJaqeTtP+Vmv5qR800pncGczxn5WN0pllQm+7aIRDnm69XeSbg==}
+     engines: {node: '>=18'}
+@@ -3996,6 +4005,12 @@ snapshots:
+       '@ai-sdk/provider-utils': 2.2.8(zod@3.24.2)
+       zod: 3.24.2
+ 
++  '@ai-sdk/google@1.2.19(zod@3.24.2)':
++    dependencies:
++      '@ai-sdk/provider': 1.1.3
++      '@ai-sdk/provider-utils': 2.2.8(zod@3.24.2)
++      zod: 3.24.2
++
+   '@ai-sdk/openai-compatible@0.2.13(zod@3.24.2)':
+     dependencies:
+       '@ai-sdk/provider': 1.1.3
+-- 
+2.43.0
+

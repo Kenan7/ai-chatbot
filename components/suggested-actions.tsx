@@ -20,24 +20,24 @@ function PureSuggestedActions({
 }: SuggestedActionsProps) {
   const suggestedActions = [
     {
-      title: 'What are the advantages',
-      label: 'of using Next.js?',
-      action: 'What are the advantages of using Next.js?',
+      title: 'I need custom packaging',
+      label: 'for my product line',
+      action: 'I need custom packaging for my product line',
     },
     {
-      title: 'Write code to',
-      label: `demonstrate djikstra's algorithm`,
-      action: `Write code to demonstrate djikstra's algorithm`,
+      title: 'Can you help me',
+      label: 'design branded merch?',
+      action: 'Can you help me design branded merchandise for my business?',
     },
     {
-      title: 'Help me write an essay',
-      label: `about silicon valley`,
-      action: `Help me write an essay about silicon valley`,
+      title: 'I\'m in the food industry',
+      label: 'what are my packaging options?',
+      action: 'I\'m in the food industry. What kind of packaging do you offer?',
     },
     {
-      title: 'What is the weather',
-      label: 'in San Francisco?',
-      action: 'What is the weather in San Francisco?',
+      title: 'I already have a logo',
+      label: 'can you apply it to mockups?',
+      action: 'I already have a logo. Can you apply it to some packaging mockups?',
     },
   ];
 
