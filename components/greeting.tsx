@@ -66,7 +66,7 @@ export const Greeting = () => {
         {displayText}
         <motion.span
           animate={{ opacity: [1, 0] }}
-          transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" }}
+          transition={{ duration: 0.8, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
           className="ml-1 w-0.5 h-6 bg-current"
         />
       </motion.div>
@@ -77,7 +77,7 @@ export const Greeting = () => {
         transition={{ delay: 0.6 }}
         className="text-2xl text-zinc-500"
       >
-        Tell me what you need, we'll handle the rest.
+        Tell me what you need, we&apos;ll handle the rest.
       </motion.div>
     </div>
   );
