@@ -14,13 +14,13 @@ export const updateDocument = ({ session, dataStream }: UpdateDocumentProps) =>
   tool({
     description: 'Update a document with the given description.',
     inputSchema: z.object({
-      id: z.string().describe('The ID of the document to update'),
+      documentId: z.string().describe('The ID of the document to update'),
       description: z
         .string()
         .describe('The description of changes that need to be made'),
     }),
-    execute: async ({ id, description }) => {
-      const document = await getDocumentById({ id });
+    execute: async ({ documentId, description }) => {
+      const document = await getDocumentById({ id: documentId });
 
       if (!document) {
         return {
@@ -53,7 +53,7 @@ export const updateDocument = ({ session, dataStream }: UpdateDocumentProps) =>
       dataStream.write({ type: 'data-finish', data: null, transient: true });
 
       return {
-        id,
+        id: documentId,
         title: document.title,
         kind: document.kind,
         content: 'The document has been updated successfully.',
