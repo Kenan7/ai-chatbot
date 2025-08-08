@@ -14,6 +14,8 @@ import {
   titleModel,
 } from './models.test';
 import { isTestEnvironment } from '../constants';
+import { google } from '@ai-sdk/google';
+
 
 const azureProvider = createAzure({
   baseURL: process.env.AZURE_ENDPOINT,
