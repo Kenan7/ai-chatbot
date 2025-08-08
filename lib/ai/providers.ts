@@ -38,10 +38,10 @@ const googleProvider = createGoogleGenerativeAI({
 
 const googleCustomProvider = customProvider({
   languageModels: {
-    'chat-model': googleProvider.languageModel('gemini-2.5-flash-lite-preview-06-17'),
-    'chat-model-reasoning': googleProvider.languageModel('gemini-2.5-flash-lite-preview-06-17'),
-    'title-model': googleProvider.languageModel('gemini-2.5-flash-lite-preview-06-17'),
-    'artifact-model': googleProvider.languageModel('gemini-2.5-flash-lite-preview-06-17'),
+    'chat-model': googleProvider.languageModel('gemini-2.5-flash-lite'),
+    'chat-model-reasoning': googleProvider.languageModel('gemini-2.5-flash-lite'),
+    'title-model': googleProvider.languageModel('gemini-2.0-flash-lite'),
+    'artifact-model': googleProvider.languageModel('gemini-2.5-flash-lite'),
   },
 });
 
