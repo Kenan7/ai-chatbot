@@ -37,6 +37,9 @@ import { ChatSDKError } from '@/lib/errors';
 import type { ChatMessage } from '@/lib/types';
 import type { ChatModel } from '@/lib/ai/models';
 import type { VisibilityType } from '@/components/visibility-selector';
+import { google } from '@ai-sdk/google';
+import type { Tool } from 'ai';
+
 
 export const maxDuration = 60;
 
@@ -164,20 +167,25 @@ export async function POST(request: Request) {
             selectedChatModel === 'chat-model-reasoning'
               ? []
               : [
-                  'getWeather',
-                  'createDocument',
-                  'updateDocument',
-                  'requestSuggestions',
+                  // 'getWeather',
+                  // 'createDocument',
+                  // 'updateDocument',
+                  // 'requestSuggestions',
+                  'googleSearch',
                 ],
           experimental_transform: smoothStream({ chunking: 'word' }),
           tools: {
-            getWeather,
-            createDocument: createDocument({ session, dataStream }),
-            updateDocument: updateDocument({ session, dataStream }),
-            requestSuggestions: requestSuggestions({
-              session,
-              dataStream,
-            }),
+            // getWeather,
+            // createDocument: createDocument({ session, dataStream }),
+            // updateDocument: updateDocument({ session, dataStream }),
+            // requestSuggestions: requestSuggestions({
+            //   session,
+            //   dataStream,
+            // }),
+            googleSearch: {
+              ...google.tools.googleSearch({}),
+              execute: google.tools.googleSearch({}).execute,
+            } as Tool<any, any>,
           },
           experimental_telemetry: {
             isEnabled: true,
