@@ -237,11 +237,12 @@ function PureMultimodalInput({
       {messages.length === 0 &&
         attachments.length === 0 &&
         uploadQueue.length === 0 && (
-          <SuggestedActions
-            sendMessage={sendMessage}
-            chatId={chatId}
-            selectedVisibilityType={selectedVisibilityType}
-          />
+        <SuggestedActions
+          sendMessage={sendMessage}
+          chatId={chatId}
+          selectedVisibilityType={selectedVisibilityType}
+          setInput={setInput}
+        />
         )}
 
       <input
@@ -332,6 +333,7 @@ export const MultimodalInput = memo(
     if (!equal(prevProps.attachments, nextProps.attachments)) return false;
     if (prevProps.selectedVisibilityType !== nextProps.selectedVisibilityType)
       return false;
+    if (prevProps.setInput !== nextProps.setInput) return false;
 
     return true;
   },
