@@ -6,7 +6,7 @@ import { type Dispatch, type SetStateAction } from 'react';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import type { VisibilityType } from './visibility-selector';
 import type { ChatMessage } from '@/lib/types';
-import { BoxIcon, SparklesIcon, InvoiceIcon, GPSIcon } from './icons';
+import { BoxIcon, SparklesIcon, InvoiceIcon, GPSIcon, PaperclipIcon, ImageIcon, FileIcon, HomeIcon, LogoOpenAI, PencilEditIcon } from './icons';
 
 interface SuggestedActionsProps {
   chatId: string;
@@ -26,25 +26,25 @@ function PureSuggestedActions({
       title: 'I need custom packaging',
       label: 'for my product line',
       action: 'I need custom packaging for my product line',
-      icon: BoxIcon,
+      icons: [BoxIcon, HomeIcon, InvoiceIcon],
     },
     {
       title: 'Can you help me',
       label: 'design branded merch?',
       action: 'Can you help me design branded merchandise for my business?',
-      icon: SparklesIcon,
+      icons: [SparklesIcon, PencilEditIcon, ImageIcon],
     },
     {
       title: 'I\'m in the food industry',
       label: 'what are my packaging options?',
       action: 'I\'m in the food industry. What kind of packaging do you offer?',
-      icon: InvoiceIcon,
+      icons: [InvoiceIcon, BoxIcon, PaperclipIcon],
     },
     {
       title: 'I already have a logo',
       label: 'can you apply it to mockups?',
       action: 'I already have a logo. Can you apply it to some packaging mockups?',
-      icon: GPSIcon,
+      icons: [LogoOpenAI, FileIcon, ImageIcon],
     },
   ];
 
@@ -54,7 +54,6 @@ function PureSuggestedActions({
       className="grid sm:grid-cols-2 gap-2 w-full"
     >
       {suggestedActions.map((suggestedAction, index) => {
-        const IconComponent = suggestedAction.icon;
         return (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -82,8 +81,10 @@ function PureSuggestedActions({
               }}
               className="relative text-left border rounded-xl px-4 py-3.5 text-sm flex-1 gap-1 sm:flex-col w-full h-auto justify-start items-start hover:bg-accent/50 transition-colors"
             >
-              <div className="absolute top-2 right-2 opacity-60">
-                <IconComponent size={14} />
+              <div className="absolute top-2 right-2 flex gap-1 opacity-60">
+                {suggestedAction.icons.map((IconComponent, iconIndex) => (
+                  <IconComponent key={iconIndex} size={12} />
+                ))}
               </div>
               <span className="font-medium">{suggestedAction.title}</span>
               <span className="text-muted-foreground">
