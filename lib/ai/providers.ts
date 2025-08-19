@@ -3,9 +3,6 @@ import {
   extractReasoningMiddleware,
   wrapLanguageModel,
 } from 'ai';
-import { xai } from '@ai-sdk/xai';
-import { azure, createAzure } from '@ai-sdk/azure';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
 import {
   artifactModel,
@@ -14,7 +11,10 @@ import {
   titleModel,
 } from './models.test';
 import { isTestEnvironment } from '../constants';
+
 import { google } from '@ai-sdk/google';
+import { createAzure } from '@ai-sdk/azure';
+import { fal } from '@ai-sdk/fal';
 
 
 const azureProvider = createAzure({
@@ -32,16 +32,16 @@ const azureCustomProvider = customProvider({
   },
 });
 
-const googleProvider = createGoogleGenerativeAI({
-  apiKey: process.env.GEMINI_API_KEY,
-});
 
 const googleCustomProvider = customProvider({
   languageModels: {
-    'chat-model': googleProvider.languageModel('gemini-2.5-flash-lite'),
-    'chat-model-reasoning': googleProvider.languageModel('gemini-2.5-flash-lite'),
-    'title-model': googleProvider.languageModel('gemini-2.0-flash-lite'),
-    'artifact-model': googleProvider.languageModel('gemini-2.5-flash-lite'),
+    'chat-model': google.languageModel('gemini-2.5-pro'),
+    'chat-model-reasoning': google.languageModel('gemini-2.5-pro'),
+    'title-model': google.languageModel('gemini-2.0-flash-lite'),
+    'artifact-model': google.languageModel('gemini-2.5-pro'),
+  },
+  imageModels: {
+    'image-model': fal.imageModel('fal-ai/flux/schnell'),
   },
 });
 
