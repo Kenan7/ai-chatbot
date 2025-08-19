@@ -72,6 +72,9 @@ function PureSuggestedActions({
                   role: 'user',
                   parts: [{ type: 'text', text: suggestedAction.action }],
                 });
+
+                // Clear the input after a suggestion is clicked
+                setInput('');
               }}
               onMouseEnter={() => {
                 setInput(suggestedAction.action);

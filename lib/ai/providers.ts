@@ -3,9 +3,6 @@ import {
   extractReasoningMiddleware,
   wrapLanguageModel,
 } from 'ai';
-import { xai } from '@ai-sdk/xai';
-import { azure, createAzure } from '@ai-sdk/azure';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
 import {
   artifactModel,
@@ -14,7 +11,11 @@ import {
   titleModel,
 } from './models.test';
 import { isTestEnvironment } from '../constants';
+
 import { google } from '@ai-sdk/google';
+import { createAzure } from '@ai-sdk/azure';
+import { fal } from '@ai-sdk/fal';
+import { openai } from '@ai-sdk/openai';
 
 
 const azureProvider = createAzure({
@@ -32,16 +33,28 @@ const azureCustomProvider = customProvider({
   },
 });
 
-const googleProvider = createGoogleGenerativeAI({
-  apiKey: process.env.GEMINI_API_KEY,
-});
 
 const googleCustomProvider = customProvider({
   languageModels: {
-    'chat-model': googleProvider.languageModel('gemini-2.5-flash-lite'),
-    'chat-model-reasoning': googleProvider.languageModel('gemini-2.5-flash-lite'),
-    'title-model': googleProvider.languageModel('gemini-2.0-flash-lite'),
-    'artifact-model': googleProvider.languageModel('gemini-2.5-flash-lite'),
+    'chat-model': google.languageModel('gemini-2.5-pro'),
+    'chat-model-reasoning': google.languageModel('gemini-2.5-pro'),
+    'title-model': google.languageModel('gemini-2.0-flash-lite'),
+    'artifact-model': google.languageModel('gemini-2.5-pro'),
+  },
+  imageModels: {
+    'image-model': fal.imageModel('fal-ai/flux/schnell'),
+  },
+});
+
+const openaiProvider = customProvider({
+  languageModels: {
+    'chat-model': openai.languageModel('gpt-4.1'),
+    'chat-model-reasoning': openai.languageModel('gpt-4.1'),
+    'title-model': openai.languageModel('gpt-4o-mini'),
+    'artifact-model': openai.languageModel('gpt-4.1'),
+  },
+  imageModels: {
+    'image-model': fal.imageModel('fal-ai/flux/schnell'),
   },
 });
 
@@ -54,4 +67,4 @@ export const myProvider = isTestEnvironment
         'artifact-model': artifactModel,
       },
     })
-  : googleCustomProvider;
+  : openaiProvider;
