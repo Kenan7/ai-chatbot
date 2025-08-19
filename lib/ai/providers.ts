@@ -15,6 +15,7 @@ import { isTestEnvironment } from '../constants';
 import { google } from '@ai-sdk/google';
 import { createAzure } from '@ai-sdk/azure';
 import { fal } from '@ai-sdk/fal';
+import { openai } from '@ai-sdk/openai';
 
 
 const azureProvider = createAzure({
@@ -45,6 +46,18 @@ const googleCustomProvider = customProvider({
   },
 });
 
+const openaiProvider = customProvider({
+  languageModels: {
+    'chat-model': openai.languageModel('gpt-4.1'),
+    'chat-model-reasoning': openai.languageModel('gpt-4.1'),
+    'title-model': openai.languageModel('gpt-4o-mini'),
+    'artifact-model': openai.languageModel('gpt-4.1'),
+  },
+  imageModels: {
+    'image-model': fal.imageModel('fal-ai/flux/schnell'),
+  },
+});
+
 export const myProvider = isTestEnvironment
   ? customProvider({
       languageModels: {
@@ -54,4 +67,4 @@ export const myProvider = isTestEnvironment
         'artifact-model': artifactModel,
       },
     })
-  : googleCustomProvider;
+  : openaiProvider;
