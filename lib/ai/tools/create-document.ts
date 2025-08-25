@@ -16,18 +16,40 @@ interface CreateDocumentProps {
 
 // Helper function to extract uploaded images from conversation
 function findUploadedImages(messages?: ChatMessage[]): string[] {
-  if (!messages) return [];
+  console.log('🔍 [findUploadedImages] Starting search for uploaded images...');
+  console.log('🔍 [findUploadedImages] Messages provided:', messages ? messages.length : 'none');
+  
+  if (!messages) {
+    console.log('❌ [findUploadedImages] No messages provided, returning empty array');
+    return [];
+  }
   
   const imageUrls: string[] = [];
   
   // Look through all messages for file attachments
   for (const message of messages) {
+    console.log('🔍 [findUploadedImages] Checking message:', {
+      id: message.id,
+      role: message.role,
+      partsCount: message.parts?.length || 0
+    });
+    
     for (const part of message.parts || []) {
-      if (part.type === 'file' && part.mediaType?.startsWith('image/')) {
-        imageUrls.push(part.url);
+      console.log('🔍 [findUploadedImages] Checking part:', {
+        type: part.type,
+        mediaType: (part as any).mediaType,
+        url: (part as any).url
+      });
+      
+      if (part.type === 'file' && (part as any).mediaType?.startsWith('image/')) {
+        console.log('✅ [findUploadedImages] Found image:', (part as any).url);
+        imageUrls.push((part as any).url);
       }
     }
   }
+  
+  console.log('🔍 [findUploadedImages] Total images found:', imageUrls.length);
+  console.log('🔍 [findUploadedImages] Image URLs:', imageUrls);
   
   return imageUrls;
 }
@@ -43,19 +65,42 @@ export const createDocument = ({ session, dataStream, messages }: CreateDocument
       useUploadedImage: z.boolean().optional().describe('Set to true to explicitly use the most recently uploaded image as reference. Set to false to avoid using uploaded images. If not specified, uploaded images will be used automatically when relevant.'),
     }),
     execute: async ({ title, kind, referenceImageUrl, useUploadedImage }) => {
+      console.log('🚀 [createDocument] Starting execution with params:', {
+        title,
+        kind,
+        referenceImageUrl,
+        useUploadedImage,
+        messagesProvided: !!messages,
+        messagesCount: messages?.length
+      });
+      
       const id = generateUUID();
 
       // Auto-detect uploaded images if no specific reference URL provided
       let finalReferenceImageUrl = referenceImageUrl;
       
+      console.log('🔄 [createDocument] Processing reference image logic...');
+      console.log('🔄 [createDocument] Initial referenceImageUrl:', referenceImageUrl);
+      console.log('🔄 [createDocument] useUploadedImage:', useUploadedImage);
+      
       if (!finalReferenceImageUrl && useUploadedImage !== false) {
+        console.log('🔄 [createDocument] No explicit URL provided, checking for uploaded images...');
         const uploadedImages = findUploadedImages(messages);
         if (uploadedImages.length > 0) {
           // Use the most recent uploaded image
           finalReferenceImageUrl = uploadedImages[uploadedImages.length - 1];
-          console.log('Auto-detected uploaded image for reference:', finalReferenceImageUrl);
+          console.log('✅ [createDocument] Auto-detected uploaded image for reference:', finalReferenceImageUrl);
+        } else {
+          console.log('❌ [createDocument] No uploaded images found');
         }
+      } else {
+        console.log('🔄 [createDocument] Skipping auto-detection:', {
+          hasExplicitUrl: !!finalReferenceImageUrl,
+          useUploadedImageIsFalse: useUploadedImage === false
+        });
       }
+      
+      console.log('🎯 [createDocument] Final referenceImageUrl:', finalReferenceImageUrl);
 
       dataStream.write({
         type: 'data-kind',
@@ -81,14 +126,24 @@ export const createDocument = ({ session, dataStream, messages }: CreateDocument
         transient: true,
       });
 
+      console.log('📄 [createDocument] Looking for document handler for kind:', kind);
       const documentHandler = documentHandlersByArtifactKind.find(
         (documentHandlerByArtifactKind) =>
           documentHandlerByArtifactKind.kind === kind,
       );
 
       if (!documentHandler) {
+        console.log('❌ [createDocument] No document handler found for kind:', kind);
         throw new Error(`No document handler found for kind: ${kind}`);
       }
+      
+      console.log('✅ [createDocument] Document handler found, calling onCreateDocument...');
+      console.log('📄 [createDocument] Passing to handler:', {
+        id,
+        title,
+        hasSession: !!session,
+        referenceImageUrl: finalReferenceImageUrl
+      });
 
       await documentHandler.onCreateDocument({
         id,
@@ -97,6 +152,8 @@ export const createDocument = ({ session, dataStream, messages }: CreateDocument
         session,
         referenceImageUrl: finalReferenceImageUrl,
       });
+      
+      console.log('✅ [createDocument] Document handler completed successfully');
 
       dataStream.write({ type: 'data-finish', data: null, transient: true });
 

@@ -86,6 +86,20 @@ export async function POST(request: Request) {
       selectedChatModel: ChatModel['id'];
       selectedVisibilityType: VisibilityType;
     } = requestBody;
+    
+    console.log('📬 [chat-route] Received message:', {
+      messageId: message.id,
+      role: message.role,
+      partsCount: message.parts?.length,
+      parts: message.parts?.map(p => ({
+        type: p.type,
+        ...(p.type === 'file' ? {
+          filename: (p as any).filename,
+          mediaType: (p as any).mediaType,
+          url: (p as any).url
+        } : {})
+      }))
+    });
 
     const session = await auth();
 
@@ -151,10 +165,17 @@ export async function POST(request: Request) {
     const streamId = generateUUID();
     await createStreamId({ streamId, chatId: id });
 
+    console.log('📋 [chat-route] Creating stream with messages:', {
+      totalMessages: uiMessages.length,
+      messageTypes: uiMessages.map(m => ({ role: m.role, partsCount: m.parts?.length })),
+      hasFileUploads: uiMessages.some(m => m.parts?.some(p => p.type === 'file'))
+    });
+
     const stream = createUIMessageStream({
       execute: ({ writer: dataStream }) => {
-        console.log('Starting streamText with model:', selectedChatModel);
-        console.log('Provider:', typeof myProvider);
+        console.log('🚀 [chat-route] Starting streamText with model:', selectedChatModel);
+        console.log('🚀 [chat-route] Provider:', typeof myProvider);
+        console.log('🛠️ [chat-route] Creating createDocument tool with messages:', uiMessages.length);
         
         const result = streamText({
           model: myProvider.languageModel(selectedChatModel),
