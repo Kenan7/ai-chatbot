@@ -171,7 +171,7 @@ export async function POST(request: Request) {
                 ],
           experimental_transform: smoothStream({ chunking: 'word' }),
           tools: {
-            createDocument: createDocument({ session, dataStream }),
+            createDocument: createDocument({ session, dataStream, messages: uiMessages }),
             updateDocument: updateDocument({ session, dataStream }),
             googleSearch: {
               ...google.tools.googleSearch({}),

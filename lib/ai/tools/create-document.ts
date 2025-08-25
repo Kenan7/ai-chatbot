@@ -11,18 +11,51 @@ import type { ChatMessage } from '@/lib/types';
 interface CreateDocumentProps {
   session: Session;
   dataStream: UIMessageStreamWriter<ChatMessage>;
+  messages?: ChatMessage[];  // Add conversation context
 }
 
-export const createDocument = ({ session, dataStream }: CreateDocumentProps) =>
+// Helper function to extract uploaded images from conversation
+function findUploadedImages(messages?: ChatMessage[]): string[] {
+  if (!messages) return [];
+  
+  const imageUrls: string[] = [];
+  
+  // Look through all messages for file attachments
+  for (const message of messages) {
+    for (const part of message.parts || []) {
+      if (part.type === 'file' && part.mediaType?.startsWith('image/')) {
+        imageUrls.push(part.url);
+      }
+    }
+  }
+  
+  return imageUrls;
+}
+
+export const createDocument = ({ session, dataStream, messages }: CreateDocumentProps) =>
   tool({
     description:
-      'Create a image generation visualization. This tool will call other functions that will generate the contents of the document based on the title and kind.',
+      'Create a visual artifact (image, document, or visualization). For image generation, you can automatically detect and use any images uploaded by the user in the conversation as reference images, OR you can specify a specific reference image URL. Use this for: 1) Creating variations of uploaded images, 2) Applying uploaded brand guidelines/logos, 3) Combining uploaded images with new content, 4) Using any uploaded image as a base for modifications. If the user has uploaded images and wants to create something based on them, those images will automatically be detected and used.',
     inputSchema: z.object({
-      title: z.string(),
-      kind: z.enum(artifactKinds),
+      title: z.string().describe('The prompt or description for generating the content'),
+      kind: z.enum(artifactKinds).describe('The type of artifact to create'),
+      referenceImageUrl: z.string().url().optional().describe('Optional URL of a specific image to use as reference. If not provided, the system will automatically use the most recent uploaded image from the conversation if available.'),
+      useUploadedImage: z.boolean().optional().describe('Set to true to explicitly use the most recently uploaded image as reference. Set to false to avoid using uploaded images. If not specified, uploaded images will be used automatically when relevant.'),
     }),
-    execute: async ({ title, kind }) => {
+    execute: async ({ title, kind, referenceImageUrl, useUploadedImage }) => {
       const id = generateUUID();
+
+      // Auto-detect uploaded images if no specific reference URL provided
+      let finalReferenceImageUrl = referenceImageUrl;
+      
+      if (!finalReferenceImageUrl && useUploadedImage !== false) {
+        const uploadedImages = findUploadedImages(messages);
+        if (uploadedImages.length > 0) {
+          // Use the most recent uploaded image
+          finalReferenceImageUrl = uploadedImages[uploadedImages.length - 1];
+          console.log('Auto-detected uploaded image for reference:', finalReferenceImageUrl);
+        }
+      }
 
       dataStream.write({
         type: 'data-kind',
@@ -62,6 +95,7 @@ export const createDocument = ({ session, dataStream }: CreateDocumentProps) =>
         title,
         dataStream,
         session,
+        referenceImageUrl: finalReferenceImageUrl,
       });
 
       dataStream.write({ type: 'data-finish', data: null, transient: true });
@@ -70,7 +104,9 @@ export const createDocument = ({ session, dataStream }: CreateDocumentProps) =>
         id,
         title,
         kind,
-        content: 'A document was created and is now visible to the user.',
+        content: finalReferenceImageUrl 
+          ? 'A document was created using the reference image and is now visible to the user.'
+          : 'A document was created and is now visible to the user.',
       };
     },
   });
