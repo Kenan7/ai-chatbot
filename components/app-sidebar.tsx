@@ -2,6 +2,9 @@
 
 import type { User } from 'next-auth';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { useTheme } from 'next-themes';
+import { useState, useEffect } from 'react';
 
 import { PlusIcon } from '@/components/icons';
 import { SidebarHistory } from '@/components/sidebar-history';
@@ -21,6 +24,25 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 export function AppSidebar({ user }: { user: User | undefined }) {
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
+  const { theme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Determine which logo to show based on theme
+  const getLogoSrc = () => {
+    if (!mounted) return '/images/sellectad-light.png'; // Default fallback
+    
+    // Check for dark theme first
+    if (resolvedTheme === 'dark' || document.documentElement.classList.contains('dark')) {
+      return '/images/sellectad-dark.png';
+    }
+    
+    // For all light themes (including green variants), use light logo
+    return '/images/sellectad-light.png';
+  };
 
   return (
     <Sidebar className="group-data-[side=left]:border-r-0">
@@ -32,11 +54,16 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               onClick={() => {
                 setOpenMobile(false);
               }}
-              className="flex flex-row gap-3 items-center"
+              className="flex flex-row gap-3 items-center px-2 hover:bg-muted rounded-md cursor-pointer transition-colors"
             >
-              <span className="text-lg font-semibold px-2 hover:bg-muted rounded-md cursor-pointer">
-                Chatbot
-              </span>
+              <Image
+                src={getLogoSrc()}
+                alt="Sellectad"
+                width={120}
+                height={32}
+                className="h-8 w-auto object-contain"
+                priority
+              />
             </Link>
             <Tooltip>
               <TooltipTrigger asChild>
