@@ -4,7 +4,6 @@ import { ChevronUp } from 'lucide-react';
 import Image from 'next/image';
 import type { User } from 'next-auth';
 import { signOut, useSession } from 'next-auth/react';
-import { useTheme } from 'next-themes';
 
 import {
   DropdownMenu,
@@ -22,11 +21,11 @@ import { useRouter } from 'next/navigation';
 import { toast } from './toast';
 import { LoaderIcon } from './icons';
 import { guestRegex } from '@/lib/constants';
+import { ThemeSelector } from './theme-selector';
 
 export function SidebarUserNav({ user }: { user: User }) {
   const router = useRouter();
   const { data, status } = useSession();
-  const { setTheme, resolvedTheme } = useTheme();
 
   const isGuest = guestRegex.test(data?.user?.email ?? '');
 
@@ -71,13 +70,7 @@ export function SidebarUserNav({ user }: { user: User }) {
             side="top"
             className="w-[--radix-popper-anchor-width]"
           >
-            <DropdownMenuItem
-              data-testid="user-nav-item-theme"
-              className="cursor-pointer"
-              onSelect={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-            >
-              {`Toggle ${resolvedTheme === 'light' ? 'dark' : 'light'} mode`}
-            </DropdownMenuItem>
+            <ThemeSelector variant="menuItem" />
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild data-testid="user-nav-item-auth">
               <button

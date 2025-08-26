@@ -28,8 +28,20 @@ const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
 });
 
-const LIGHT_THEME_COLOR = 'hsl(0 0% 100%)';
-const DARK_THEME_COLOR = 'hsl(240deg 10% 3.92%)';
+const THEME_COLORS = {
+  light: 'hsl(0 0% 100%)',
+  dark: 'hsl(240deg 10% 3.92%)',
+  forest: 'hsl(120 20% 97%)',
+  sage: 'hsl(60 15% 97%)',
+  emerald: 'hsl(160 25% 97%)',
+  mint: 'hsl(180 30% 98%)',
+  jade: 'hsl(150 22% 97%)',
+  pine: 'hsl(140 18% 97%)',
+  seafoam: 'hsl(165 35% 98%)',
+  olive: 'hsl(80 15% 97%)',
+  eucalyptus: 'hsl(155 20% 97%)',
+};
+
 const THEME_COLOR_SCRIPT = `\
 (function() {
   var html = document.documentElement;
@@ -39,9 +51,25 @@ const THEME_COLOR_SCRIPT = `\
     meta.setAttribute('name', 'theme-color');
     document.head.appendChild(meta);
   }
+  var themeColors = ${JSON.stringify(THEME_COLORS)};
   function updateThemeColor() {
     var isDark = html.classList.contains('dark');
-    meta.setAttribute('content', isDark ? '${DARK_THEME_COLOR}' : '${LIGHT_THEME_COLOR}');
+    if (isDark) {
+      meta.setAttribute('content', themeColors.dark);
+      return;
+    }
+    // Check for custom theme classes
+    var classList = Array.from(html.classList);
+    var themeClass = classList.find(function(cls) { return cls.startsWith('theme-'); });
+    if (themeClass) {
+      var themeName = themeClass.replace('theme-', '');
+      if (themeColors[themeName]) {
+        meta.setAttribute('content', themeColors[themeName]);
+        return;
+      }
+    }
+    // Default to light
+    meta.setAttribute('content', themeColors.light);
   }
   var observer = new MutationObserver(updateThemeColor);
   observer.observe(html, { attributes: true, attributeFilter: ['class'] });
