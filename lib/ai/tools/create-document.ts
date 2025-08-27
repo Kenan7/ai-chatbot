@@ -20,9 +20,10 @@ export const createDocument = ({ session, dataStream }: CreateDocumentProps) =>
     inputSchema: z.object({
       title: z.string().describe('The prompt or description for generating the content'),
       kind: z.enum(artifactKinds).describe('The type of artifact to create'),
+      mode: z.enum(['generate', 'edit']).describe('The mode of document creation'),
       referenceImageUrls: z.array(z.string().url()).optional().describe('Optional array of image URLs to use as reference. Can contain one or more images that will be used as a base for generation.'),
     }),
-    execute: async ({ title, kind, referenceImageUrls }) => {
+    execute: async ({ title, kind, mode, referenceImageUrls }) => {
       const id = generateUUID();
 
       dataStream.write({
@@ -63,6 +64,7 @@ export const createDocument = ({ session, dataStream }: CreateDocumentProps) =>
         title,
         dataStream,
         session,
+        mode,
         referenceImageUrls,
       });
 

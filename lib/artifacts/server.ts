@@ -22,6 +22,7 @@ export interface CreateDocumentCallbackProps {
   title: string;
   dataStream: UIMessageStreamWriter<ChatMessage>;
   session: Session;
+  mode: 'generate' | 'edit';
   referenceImageUrls?: string[];
 }
 
@@ -30,6 +31,7 @@ export interface UpdateDocumentCallbackProps {
   description: string;
   dataStream: UIMessageStreamWriter<ChatMessage>;
   session: Session;
+  mode: 'generate' | 'edit';
   referenceImageUrls?: string[];
 }
 
@@ -52,6 +54,7 @@ export function createDocumentHandler<T extends ArtifactKind>(config: {
         title: args.title,
         dataStream: args.dataStream,
         session: args.session,
+        mode: args.mode,
         referenceImageUrls: args.referenceImageUrls,
       });
 
@@ -73,6 +76,7 @@ export function createDocumentHandler<T extends ArtifactKind>(config: {
         description: args.description,
         dataStream: args.dataStream,
         session: args.session,
+        mode: args.mode,
         referenceImageUrls: args.referenceImageUrls,
       });
 

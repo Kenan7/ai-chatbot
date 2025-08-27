@@ -4,11 +4,12 @@ import { experimental_generateImage } from 'ai';
 
 export const imageDocumentHandler = createDocumentHandler<'image'>({
   kind: 'image',
-  onCreateDocument: async ({ title, dataStream, referenceImageUrl }) => {
+  onCreateDocument: async ({ title, dataStream, mode, referenceImageUrls }) => {
     console.log('🎨 [imageDocumentHandler] Starting image generation...');
     console.log('🎨 [imageDocumentHandler] Received params:', {
       title,
-      referenceImageUrl,
+      referenceImageUrls,
+      mode,
       hasDataStream: !!dataStream
     });
     
@@ -22,11 +23,11 @@ export const imageDocumentHandler = createDocumentHandler<'image'>({
     console.log('🔧 [imageDocumentHandler] Base generation options:', generationOptions);
 
     // Add providerOptions with reference image if provided
-    if (referenceImageUrl) {
-      console.log('✅ [imageDocumentHandler] Adding reference image to providerOptions');
+    if (referenceImageUrls && referenceImageUrls.length > 0) {
+      console.log('✅ [imageDocumentHandler] Adding reference images to providerOptions');
       generationOptions.providerOptions = {
         fal: {
-          image_url: referenceImageUrl,
+          image_urls: referenceImageUrls,
         },
       };
       console.log('🔧 [imageDocumentHandler] Updated generation options with providerOptions:', 
@@ -54,7 +55,7 @@ export const imageDocumentHandler = createDocumentHandler<'image'>({
       throw error;
     }
   },
-  onUpdateDocument: async ({ description, dataStream, referenceImageUrl }) => {
+  onUpdateDocument: async ({ description, dataStream, referenceImageUrls }) => {
     // Build generation options with optional reference image
     const generationOptions: any = {
       model: myProvider.imageModel('image-model'),
@@ -63,10 +64,10 @@ export const imageDocumentHandler = createDocumentHandler<'image'>({
     };
 
     // Add providerOptions with reference image if provided
-    if (referenceImageUrl) {
+    if (referenceImageUrls && referenceImageUrls.length > 0) {
       generationOptions.providerOptions = {
         fal: {
-          image_url: referenceImageUrl,
+          image_urls: referenceImageUrls,
         },
       };
     }
