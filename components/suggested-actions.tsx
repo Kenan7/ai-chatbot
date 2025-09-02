@@ -2,11 +2,11 @@
 
 import { motion } from 'framer-motion';
 import { Button } from './ui/button';
-import type { Dispatch, SetStateAction } from 'react';
+import { type Dispatch, type SetStateAction } from 'react';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import type { VisibilityType } from './visibility-selector';
 import type { ChatMessage } from '@/lib/types';
-import { BoxIcon, SparklesIcon, InvoiceIcon, PaperclipIcon, ImageIcon, FileIcon, HomeIcon, LogoOpenAI, PencilEditIcon } from './icons';
+import { BoxIcon, SparklesIcon, InvoiceIcon, GPSIcon, PaperclipIcon, ImageIcon, FileIcon, HomeIcon, LogoOpenAI, PencilEditIcon } from './icons';
 
 interface SuggestedActionsProps {
   chatId: string;

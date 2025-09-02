@@ -12,15 +12,15 @@ interface UpdateDocumentProps {
 
 export const updateDocument = ({ session, dataStream }: UpdateDocumentProps) =>
   tool({
-    description: 'Update a document with the given description. For image documents, you can optionally provide reference image URLs to incorporate elements from other images or use them as a base for modifications.',
+    description: 'Update a document with the given description. For image documents, you can optionally provide a reference image URL to incorporate elements from another image or use it as a base for modifications.',
     inputSchema: z.object({
       documentId: z.string().describe('The ID of the document to update'),
       description: z
         .string()
         .describe('The description of changes that need to be made'),
-      referenceImageUrls: z.array(z.string().url()).optional().describe('Optional URLs of existing images to use as reference or base for modifications when updating image documents.'),
+      referenceImageUrl: z.string().url().optional().describe('Optional URL of an existing image to use as reference or base for modifications when updating image documents.'),
     }),
-    execute: async ({ documentId, description, referenceImageUrls }) => {
+    execute: async ({ documentId, description, referenceImageUrl }) => {
       const document = await getDocumentById({ id: documentId });
 
       if (!document) {
@@ -49,7 +49,7 @@ export const updateDocument = ({ session, dataStream }: UpdateDocumentProps) =>
         description,
         dataStream,
         session,
-        referenceImageUrls,
+        referenceImageUrl,
       });
 
       dataStream.write({ type: 'data-finish', data: null, transient: true });
