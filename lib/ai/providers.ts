@@ -42,7 +42,8 @@ const googleCustomProvider = customProvider({
     'artifact-model': google.languageModel('gemini-2.5-pro'),
   },
   imageModels: {
-    'image-model': fal.imageModel('fal-ai/flux/schnell'),
+    'image-model-generate': fal.imageModel('fal-ai/flux/schnell'),
+    'image-model-edit': fal.imageModel('fal-ai/gemini-25-flash-image/edit'),
   },
 });
 
@@ -54,7 +55,8 @@ const openaiProvider = customProvider({
     'artifact-model': openai.languageModel('gpt-4.1'),
   },
   imageModels: {
-    'image-model': fal.imageModel('fal-ai/flux/schnell'),
+    'image-model-generate': fal.imageModel('fal-ai/gemini-25-flash-image'),
+    'image-model-edit': fal.imageModel('fal-ai/gemini-25-flash-image/edit'),
   },
 });
 

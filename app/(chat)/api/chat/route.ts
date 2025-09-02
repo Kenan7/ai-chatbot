@@ -7,7 +7,7 @@ import {
   streamText,
 } from 'ai';
 import { auth, type UserType } from '@/app/(auth)/auth';
-import { type RequestHints, systemPrompt } from '@/lib/ai/prompts';
+import { type RequestHints, systemPrompt, extractReferenceImages, type ReferenceImages } from '@/lib/ai/prompts';
 import {
   createStreamId,
   deleteChatById,
@@ -149,6 +149,16 @@ export async function POST(request: Request) {
       country,
     };
 
+    // Extract reference images from recent user messages (current + previous)
+    const referenceImages: ReferenceImages = extractReferenceImages(uiMessages);
+    
+    console.log('🖼️ [chat-route] Reference images extracted from recent messages:', {
+      count: referenceImages.urls.length,
+      urls: referenceImages.urls,
+      totalMessages: uiMessages.length,
+      userMessagesCount: uiMessages.filter(m => m.role === 'user').length
+    });
+
     await saveMessages({
       messages: [
         {
@@ -179,7 +189,7 @@ export async function POST(request: Request) {
         
         const result = streamText({
           model: myProvider.languageModel(selectedChatModel),
-          system: systemPrompt({ selectedChatModel, requestHints }),
+          system: systemPrompt({ selectedChatModel, requestHints, referenceImages }),
           messages: convertToModelMessages(uiMessages),
           stopWhen: stepCountIs(5),
           experimental_activeTools:
@@ -192,7 +202,7 @@ export async function POST(request: Request) {
                 ],
           experimental_transform: smoothStream({ chunking: 'word' }),
           tools: {
-            createDocument: createDocument({ session, dataStream, messages: uiMessages }),
+            createDocument: createDocument({ session, dataStream }),
             updateDocument: updateDocument({ session, dataStream }),
             googleSearch: {
               ...google.tools.googleSearch({}),

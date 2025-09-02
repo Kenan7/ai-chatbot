@@ -13,9 +13,13 @@ export const imageDocumentHandler = createDocumentHandler<'image'>({
       hasDataStream: !!dataStream
     });
     
-    // Build generation options with optional reference image
+    // Select the appropriate image model based on mode
+    const imageModelId = mode === 'edit' ? 'image-model-edit' : 'image-model-generate';
+    console.log('🎨 [imageDocumentHandler] Using image model:', imageModelId, 'for mode:', mode);
+    
+    // Build generation options with mode-specific model
     const generationOptions: any = {
-      model: myProvider.imageModel('image-model'),
+      model: myProvider.imageModel(imageModelId),
       prompt: title,
       n: 1,
     };
@@ -56,9 +60,13 @@ export const imageDocumentHandler = createDocumentHandler<'image'>({
     }
   },
   onUpdateDocument: async ({ description, dataStream, referenceImageUrls }) => {
-    // Build generation options with optional reference image
+    // For updates, we always use 'edit' mode
+    const imageModelId = 'image-model-edit';
+    console.log('🎨 [imageDocumentHandler] onUpdateDocument using image model:', imageModelId);
+    
+    // Build generation options with edit-specific model
     const generationOptions: any = {
-      model: myProvider.imageModel('image-model'),
+      model: myProvider.imageModel(imageModelId),
       prompt: description,
       n: 1,
     };
