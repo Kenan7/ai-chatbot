@@ -12,8 +12,8 @@ importers:
         specifier: ^2.0.6
         version: 2.0.6(zod@3.25.68)
       '@ai-sdk/fal':
-        specifier: ^1.0.3
-        version: 1.0.3(zod@3.25.68)
+        specifier: ^1.0.11
+        version: 1.0.11(zod@3.25.68)
       '@ai-sdk/google':
         specifier: ^2.0.3
         version: 2.0.3(zod@3.25.68)
@@ -44,6 +44,9 @@ importers:
       '@codemirror/view':
         specifier: ^6.35.3
         version: 6.36.4
+      '@fal-ai/client':
+        specifier: ^1.6.2
+        version: 1.6.2
       '@opennextjs/cloudflare':
         specifier: ^1.6.5
         version: 1.6.5(wrangler@4.32.0(bufferutil@4.0.9))
@@ -309,8 +312,8 @@ packages:
     peerDependencies:
       zod: ^3.25.76 || ^4
 
-  '@ai-sdk/fal@1.0.3':
-    resolution: {integrity: sha512-6hjo5EokkCEnkBagMFAAzZ1TA4z+WStyb8DPlrrD79jcBFehQ8WrLcjQR5dyp7mGx6pI7/dQRj88FN3/lWjd/g==}
+  '@ai-sdk/fal@1.0.11':
+    resolution: {integrity: sha512-WK0abPDC0/ALovRv2G7EjwP2iMSo4lNWJqzSuoCIde2sq051tuxerSASd5FgerK1LbfsAGHZTkX+s/aPiycCEg==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4
@@ -359,6 +362,12 @@ packages:
 
   '@ai-sdk/provider-utils@3.0.4':
     resolution: {integrity: sha512-/3Z6lfUp8r+ewFd9yzHkCmPlMOJUXup2Sx3aoUyrdXLhOmAfHRl6Z4lDbIdV0uvw/QYoBcVLJnvXN7ncYeS3uQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4
+
+  '@ai-sdk/provider-utils@3.0.7':
+    resolution: {integrity: sha512-o3BS5/t8KnBL3ubP8k3w77AByOypLm+pkIL/DCw0qKkhDbvhCy+L3hRTGPikpdb8WHcylAeKsjgwOxhj4cqTUA==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4
@@ -1486,6 +1495,10 @@ packages:
     resolution: {integrity: sha512-d9zaMRSTIKDLhctzH12MtXvJKSSUhaHcjV+2Z+GK+EEY7XKpP5yR4x+N3TAcHTcu963nIr+TMcCb4DBCYX1z6Q==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
 
+  '@fal-ai/client@1.6.2':
+    resolution: {integrity: sha512-y89jNGAZUpvt+IZfsIczULN95fGQlPxTt2c9bNFWkKe6OBnhOY+qHHH7IO4XgCsbmCwgfzzaSHUItx1nQ3ifHQ==}
+    engines: {node: '>=18.0.0'}
+
   '@fastify/busboy@2.1.1':
     resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
     engines: {node: '>=14'}
@@ -1676,6 +1689,10 @@ packages:
 
   '@marijn/find-cluster-break@1.0.2':
     resolution: {integrity: sha512-l0h88YhZFyKdXIFNfSWpyjStDjGHwZ/U7iobcK1cQQD8sejsONdQtTVU+1wVN1PBw40PiiHB1vA5S7VTfQiP9g==}
+
+  '@msgpack/msgpack@3.1.2':
+    resolution: {integrity: sha512-JEW4DEtBzfe8HvUYecLU9e6+XJnKDlUAIve8FvPzF3Kzs6Xo/KuZkZJsDH0wJXl/qEZbeeE7edxDNY3kMs39hQ==}
+    engines: {node: '>= 18'}
 
   '@neondatabase/serverless@0.9.5':
     resolution: {integrity: sha512-siFas6gItqv6wD/pZnvdu34wEqgG3nSE6zWZdq5j2DEsa+VvX8i/5HXJOo06qrw5axPXn+lGCxeR+NLaSPIXug==}
@@ -3595,8 +3612,16 @@ packages:
     resolution: {integrity: sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==}
     engines: {node: '>=6'}
 
+  eventsource-parser@1.1.2:
+    resolution: {integrity: sha512-v0eOBUbiaFojBu2s2NPBfYUoRR9GjcDNvCXVaqEf5vVfpIAh9f8RCo4vXTP8c63QRKCFwoLpMpTdPwwhEKVgzA==}
+    engines: {node: '>=14.18'}
+
   eventsource-parser@3.0.3:
     resolution: {integrity: sha512-nVpZkTMM9rF6AQ9gPJpFsNAMt48wIzB5TQgiTLdHiuO8XEDhUgZEhqKlZWXbIzo9VmJ/HvysHqEaVeD5v9TPvA==}
+    engines: {node: '>=20.0.0'}
+
+  eventsource-parser@3.0.5:
+    resolution: {integrity: sha512-bSRG85ZrMdmWtm7qkF9He9TNRzc/Bm99gEJMaQoHJ9E6Kv9QBbsldh2oMj7iXmYNEAVvNgvv5vPorG6W+XtBhQ==}
     engines: {node: '>=20.0.0'}
 
   execa@5.1.1:
@@ -5014,6 +5039,9 @@ packages:
     deprecated: Rimraf versions prior to v4 are no longer supported
     hasBin: true
 
+  robot3@0.4.1:
+    resolution: {integrity: sha512-hzjy826lrxzx8eRgv80idkf8ua1JAepRc9Efdtj03N3KNJuznQCPlyCJ7gnUmDFwZCLQjxy567mQVKmdv2BsXQ==}
+
   rope-sequence@1.3.4:
     resolution: {integrity: sha512-UT5EDe2cu2E/6O4igUr5PSFs23nvvukicWHx6GnOPlHAiiYbzNuCRQCuiUdHJQcqKalLKlrYJnjY0ySGsXNQXQ==}
 
@@ -5638,10 +5666,10 @@ snapshots:
       '@ai-sdk/provider-utils': 3.0.1(zod@3.25.68)
       zod: 3.25.68
 
-  '@ai-sdk/fal@1.0.3(zod@3.25.68)':
+  '@ai-sdk/fal@1.0.11(zod@3.25.68)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.1(zod@3.25.68)
+      '@ai-sdk/provider-utils': 3.0.7(zod@3.25.68)
       zod: 3.25.68
 
   '@ai-sdk/gateway@1.0.0-beta.3(zod@3.25.68)':
@@ -5697,6 +5725,13 @@ snapshots:
       eventsource-parser: 3.0.3
       zod: 3.25.68
       zod-to-json-schema: 3.24.5(zod@3.25.68)
+
+  '@ai-sdk/provider-utils@3.0.7(zod@3.25.68)':
+    dependencies:
+      '@ai-sdk/provider': 2.0.0
+      '@standard-schema/spec': 1.0.0
+      eventsource-parser: 3.0.5
+      zod: 3.25.68
 
   '@ai-sdk/provider@2.0.0':
     dependencies:
@@ -7219,6 +7254,12 @@ snapshots:
 
   '@eslint/js@8.57.1': {}
 
+  '@fal-ai/client@1.6.2':
+    dependencies:
+      '@msgpack/msgpack': 3.1.2
+      eventsource-parser: 1.1.2
+      robot3: 0.4.1
+
   '@fastify/busboy@2.1.1': {}
 
   '@floating-ui/core@1.6.9':
@@ -7390,6 +7431,8 @@ snapshots:
       '@lezer/lr': 1.4.2
 
   '@marijn/find-cluster-break@1.0.2': {}
+
+  '@msgpack/msgpack@3.1.2': {}
 
   '@neondatabase/serverless@0.9.5':
     dependencies:
@@ -9635,7 +9678,11 @@ snapshots:
 
   event-target-shim@5.0.1: {}
 
+  eventsource-parser@1.1.2: {}
+
   eventsource-parser@3.0.3: {}
+
+  eventsource-parser@3.0.5: {}
 
   execa@5.1.1:
     dependencies:
@@ -11354,6 +11401,8 @@ snapshots:
   rimraf@3.0.2:
     dependencies:
       glob: 7.2.3
+
+  robot3@0.4.1: {}
 
   rope-sequence@1.3.4: {}
 

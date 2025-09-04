@@ -33,14 +33,12 @@ export function AppSidebar({ user }: { user: User | undefined }) {
 
   // Determine which logo to show based on theme
   const getLogoSrc = () => {
-    if (!mounted) return '/images/sellectad-light.png'; // Default fallback
-    
-    // Check for dark theme first
-    if (resolvedTheme === 'dark' || document.documentElement.classList.contains('dark')) {
+    if (!mounted) return '/images/sellectad-light.png';
+    // Only switch to dark logo when the resolved theme is explicitly dark.
+    // Custom theme-* variants are all light-base, so they always use the light logo.
+    if (resolvedTheme === 'dark') {
       return '/images/sellectad-dark.png';
     }
-    
-    // For all light themes (including green variants), use light logo
     return '/images/sellectad-light.png';
   };
 

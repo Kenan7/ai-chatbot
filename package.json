@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@ai-sdk/azure": "^2.0.6",
-    "@ai-sdk/fal": "^1.0.3",
+    "@ai-sdk/fal": "^1.0.11",
     "@ai-sdk/google": "^2.0.3",
     "@ai-sdk/openai": "^2.0.16",
     "@ai-sdk/provider": "2.0.0-beta.1",
@@ -34,6 +34,7 @@
     "@codemirror/state": "^6.5.0",
     "@codemirror/theme-one-dark": "^6.1.2",
     "@codemirror/view": "^6.35.3",
+    "@fal-ai/client": "^1.6.2",
     "@opennextjs/cloudflare": "^1.6.5",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/api-logs": "^0.57.2",

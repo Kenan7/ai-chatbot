@@ -22,7 +22,8 @@ export interface CreateDocumentCallbackProps {
   title: string;
   dataStream: UIMessageStreamWriter<ChatMessage>;
   session: Session;
-  referenceImageUrl?: string;
+  mode: 'generate' | 'edit';
+  referenceImageUrls?: string[];
 }
 
 export interface UpdateDocumentCallbackProps {
@@ -30,7 +31,7 @@ export interface UpdateDocumentCallbackProps {
   description: string;
   dataStream: UIMessageStreamWriter<ChatMessage>;
   session: Session;
-  referenceImageUrl?: string;
+  referenceImageUrls?: string[];
 }
 
 export interface DocumentHandler<T = ArtifactKind> {
@@ -52,7 +53,8 @@ export function createDocumentHandler<T extends ArtifactKind>(config: {
         title: args.title,
         dataStream: args.dataStream,
         session: args.session,
-        referenceImageUrl: args.referenceImageUrl,
+        mode: args.mode,
+        referenceImageUrls: args.referenceImageUrls,
       });
 
       if (args.session?.user?.id) {
@@ -73,7 +75,7 @@ export function createDocumentHandler<T extends ArtifactKind>(config: {
         description: args.description,
         dataStream: args.dataStream,
         session: args.session,
-        referenceImageUrl: args.referenceImageUrl,
+        referenceImageUrls: args.referenceImageUrls,
       });
 
       if (args.session?.user?.id) {
@@ -101,4 +103,9 @@ export const documentHandlersByArtifactKind: Array<DocumentHandler> = [
   // sheetDocumentHandler,
 ];
 
-export const artifactKinds = ['text', 'code', 'image', 'sheet'] as const;
+export const artifactKinds = [
+  // 'text',
+  // 'code',
+  'image',
+  // 'sheet'
+] as const;

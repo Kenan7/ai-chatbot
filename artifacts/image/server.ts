@@ -4,17 +4,22 @@ import { experimental_generateImage } from 'ai';
 
 export const imageDocumentHandler = createDocumentHandler<'image'>({
   kind: 'image',
-  onCreateDocument: async ({ title, dataStream, referenceImageUrl }) => {
+  onCreateDocument: async ({ title, dataStream, mode, referenceImageUrls }) => {
     console.log('🎨 [imageDocumentHandler] Starting image generation...');
     console.log('🎨 [imageDocumentHandler] Received params:', {
       title,
-      referenceImageUrl,
+      referenceImageUrls,
+      mode,
       hasDataStream: !!dataStream
     });
     
-    // Build generation options with optional reference image
+    // Select the appropriate image model based on mode
+    const imageModelId = mode === 'edit' ? 'image-model-edit' : 'image-model-generate';
+    console.log('🎨 [imageDocumentHandler] Using image model:', imageModelId, 'for mode:', mode);
+    
+    // Build generation options with mode-specific model
     const generationOptions: any = {
-      model: myProvider.imageModel('image-model'),
+      model: myProvider.imageModel(imageModelId),
       prompt: title,
       n: 1,
     };
@@ -22,11 +27,11 @@ export const imageDocumentHandler = createDocumentHandler<'image'>({
     console.log('🔧 [imageDocumentHandler] Base generation options:', generationOptions);
 
     // Add providerOptions with reference image if provided
-    if (referenceImageUrl) {
-      console.log('✅ [imageDocumentHandler] Adding reference image to providerOptions');
+    if (referenceImageUrls && referenceImageUrls.length > 0) {
+      console.log('✅ [imageDocumentHandler] Adding reference images to providerOptions');
       generationOptions.providerOptions = {
         fal: {
-          image_url: referenceImageUrl,
+          image_urls: referenceImageUrls,
         },
       };
       console.log('🔧 [imageDocumentHandler] Updated generation options with providerOptions:', 
@@ -54,19 +59,23 @@ export const imageDocumentHandler = createDocumentHandler<'image'>({
       throw error;
     }
   },
-  onUpdateDocument: async ({ description, dataStream, referenceImageUrl }) => {
-    // Build generation options with optional reference image
+  onUpdateDocument: async ({ description, dataStream, referenceImageUrls }) => {
+    // For updates, we always use 'edit' mode
+    const imageModelId = 'image-model-edit';
+    console.log('🎨 [imageDocumentHandler] onUpdateDocument using image model:', imageModelId);
+    
+    // Build generation options with edit-specific model
     const generationOptions: any = {
-      model: myProvider.imageModel('image-model'),
+      model: myProvider.imageModel(imageModelId),
       prompt: description,
       n: 1,
     };
 
     // Add providerOptions with reference image if provided
-    if (referenceImageUrl) {
+    if (referenceImageUrls && referenceImageUrls.length > 0) {
       generationOptions.providerOptions = {
         fal: {
-          image_url: referenceImageUrl,
+          image_urls: referenceImageUrls,
         },
       };
     }

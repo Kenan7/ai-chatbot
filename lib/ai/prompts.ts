@@ -7,9 +7,19 @@ When artifact is open, it is on the right side of the screen, while the conversa
 When generating images changes are reflected in real-time on the artifacts and visible to the user.
 
 
-Use \`createDocument\` to create a new image artifact. (kind: 'image')
+Use \`createDocument\` to create a new image artifact. (kind: 'image') (mode: 'generate' | 'edit')
 IMPORTANT: Call \`createDocument\` only ONCE per user request. Do not make multiple parallel calls.
-Use image artifacts (kind: 'image') for anything with visual elements that need to be generated or manipulated.
+Use image artifacts (kind: 'image') (mode: 'generate' | 'edit') for anything with visual elements that need to be generated or manipulated.
+
+If user has passed you reference image URLs, make sure to include them in the document creation request.
+don't make up any reference by yourself, do not invent new ones. you should be able to know what was passed to you as parts.
+and also include the mode (generate or edit) in the request.
+if user has passed any assets it means its edit mode
+
+Image generation model works in this way, if no reference images are provided, it will use text-only generation.
+If reference images are provided, they will be used as a base for the generation.
+
+if we are supposed to 'edit' based on referenced images, this is how you should come up for the prompt which makes sense.
 
 ## Image Generation Guidelines
 
@@ -21,16 +31,14 @@ When creating images, provide detailed, specific titles that include:
 3. **Branding Context**: How the brand should be incorporated
 4. **Quality Descriptors**: "High-resolution", "commercial quality", "photorealistic"
 5. **Cultural Sensitivity**: When applicable, mention respectful cultural representation
-
-### Example Image Titles:
-- "Professional product photography of a Nowruz-themed gift bottle with Persian tile patterns, saffron and emerald colors, premium materials"
-- "Modern minimalist tote bag mockup with corporate branding, clean background, professional lighting"
-- "Cultural authentic Nowruz packaging design with traditional cypress tree motifs, gold accents, elegant presentation"
+6. **Composition Elements**: Background, lighting, angles, props
+7. **Visual Intelligence**: Incorporate merch and products that actually exist in real life, including accurate branding and packaging.
 
 Always aim for commercial-grade, professional-looking results that could be used in actual marketing materials.
 
 We are using Flux (Black Forest Labs) Stable diffusion model.
 Use rich detailed prompting (with title param) for image generation.
+
 `;
 
 export const regularPrompt = `
@@ -44,9 +52,6 @@ You are not a chatbot, you are a human-like consultant who is here to help users
 You can have conversation with the user in the language they want or choose, go with the flow.
 You can act as an inspirational partner, guiding users to define and develop ideas for corporate gifts, event materials, and promotional campaigns.
 
-You can call \`createDocument\` to generate new image artifacts based on user input.
-
-
 If region or location of the user is not provided, assume it's from Azerbaijan.
 `;
 
@@ -57,6 +62,38 @@ export interface RequestHints {
   country: Geo['country'];
 }
 
+export interface ReferenceImages {
+  urls: string[];
+}
+
+// Helper function to extract reference image URLs from recent user messages
+// Extracts images from the current message and recent 2-3 user messages for context
+export const extractReferenceImages = (messages: Array<{ role?: string; parts?: Array<{ type: string; url?: string; mediaType?: string; }> }>): ReferenceImages => {
+  const imageUrls: string[] = [];
+  
+  // Get the last 3 user messages (including current one) in reverse order
+  const recentUserMessages = messages
+    .filter(msg => msg.role === 'user')
+    .slice(-5)
+    .reverse(); // Most recent first
+  
+  // Extract images from recent user messages
+  for (const message of recentUserMessages) {
+    if (message.parts) {
+      for (const part of message.parts) {
+        if (part.type === 'file' && part.url && part.mediaType?.startsWith('image/')) {
+          // Avoid duplicates
+          if (!imageUrls.includes(part.url)) {
+            imageUrls.push(part.url);
+          }
+        }
+      }
+    }
+  }
+  
+  return { urls: imageUrls };
+};
+
 export const getRequestPromptFromHints = (requestHints: RequestHints) => `\
 About the origin of user's request:
 - lat: ${requestHints.latitude}
@@ -65,19 +102,38 @@ About the origin of user's request:
 - country: ${requestHints.country}
 `;
 
+export const getReferenceImagesPrompt = (referenceImages: ReferenceImages) => {
+  if (referenceImages.urls.length === 0) {
+    return '';
+  }
+  
+  const imageList = referenceImages.urls
+    .map((url, index) => `  ${index + 1}. ${url}`)
+    .join('\n');
+    
+  return `\
+Reference images uploaded in recent messages:
+${imageList}
+
+IMPORTANT: When user requests image generation and you have reference images available above, you MUST use them by passing the \`referenceImageUrls\` parameter to \`createDocument\`. Do not make up or invent image URLs—only use the ones listed above.`;
+};
+
 export const systemPrompt = ({
   selectedChatModel,
   requestHints,
+  referenceImages,
 }: {
   selectedChatModel: string;
   requestHints: RequestHints;
+  referenceImages?: ReferenceImages;
 }) => {
   const requestPrompt = getRequestPromptFromHints(requestHints);
+  const referenceImagesPrompt = referenceImages ? getReferenceImagesPrompt(referenceImages) : '';
 
   if (selectedChatModel === 'chat-model-reasoning') {
-    return `${regularPrompt}\n\n${requestPrompt}`;
+    return `${regularPrompt}\n\n${requestPrompt}${referenceImagesPrompt ? `\n\n${referenceImagesPrompt}` : ''}`;
   } else {
-    return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}`;
+    return `${regularPrompt}\n\n${requestPrompt}${referenceImagesPrompt ? `\n\n${referenceImagesPrompt}` : ''}\n\n${artifactsPrompt}`;
   }
 };
 
