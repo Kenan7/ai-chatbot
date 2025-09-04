@@ -18,9 +18,9 @@ export const updateDocument = ({ session, dataStream }: UpdateDocumentProps) =>
       description: z
         .string()
         .describe('The description of changes that need to be made'),
-      referenceImageUrl: z.string().url().optional().describe('Optional URL of an existing image to use as reference or base for modifications when updating image documents.'),
+      referenceImageUrls: z.array(z.string().url()).optional().describe('Optional URLs of existing images to use as reference or base for modifications when updating image documents.'),
     }),
-    execute: async ({ documentId, description, referenceImageUrl }) => {
+    execute: async ({ documentId, description, referenceImageUrls }) => {
       const document = await getDocumentById({ id: documentId });
 
       if (!document) {
@@ -49,7 +49,7 @@ export const updateDocument = ({ session, dataStream }: UpdateDocumentProps) =>
         description,
         dataStream,
         session,
-        referenceImageUrl,
+        referenceImageUrls,
       });
 
       dataStream.write({ type: 'data-finish', data: null, transient: true });
