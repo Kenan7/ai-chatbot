@@ -115,7 +115,7 @@ export const getReferenceImagesPrompt = (referenceImages: ReferenceImages) => {
 Reference images uploaded in recent messages:
 ${imageList}
 
-IMPORTANT: When user requests image generation and you have reference images available above, you MUST use them by passing the referenceImageUrls parameter to createDocument. Do not make up or invent image URLs - only use the ones listed above.`;
+IMPORTANT: When user requests image generation and you have reference images available above, you MUST use them by passing the \`referenceImageUrls\` parameter to \`createDocument\`. Do not make up or invent image URLs—only use the ones listed above.`;
 };
 
 export const systemPrompt = ({
