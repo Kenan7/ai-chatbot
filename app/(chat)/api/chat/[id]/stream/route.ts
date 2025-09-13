@@ -10,15 +10,31 @@ import type { ChatMessage } from '@/lib/types';
 import { createUIMessageStream, JsonToSseTransformStream } from 'ai';
 import { getStreamContext } from '../../route';
 import { differenceInSeconds } from 'date-fns';
+import { verifyAdminToken } from '@/lib/admin-auth';
+
+function getAdminTokenFromCookieHeader(cookieHeader: string | null): string | undefined {
+  if (!cookieHeader) return undefined;
+  const parts = cookieHeader.split(';');
+  for (const part of parts) {
+    const [name, ...rest] = part.trim().split('=');
+    if (name === 'admin_session') {
+      return rest.join('=');
+    }
+  }
+  return undefined;
+}
 
 export async function GET(
-  _: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id: chatId } = await params;
 
   const streamContext = getStreamContext();
   const resumeRequestedAt = new Date();
+
+  const adminToken = getAdminTokenFromCookieHeader(request.headers.get('cookie'));
+  const isAdmin = verifyAdminToken(adminToken);
 
   if (!streamContext) {
     return new Response(null, { status: 204 });
@@ -30,7 +46,7 @@ export async function GET(
 
   const session = await auth();
 
-  if (!session?.user) {
+  if (!session?.user && !isAdmin) {
     return new ChatSDKError('unauthorized:chat').toResponse();
   }
 
@@ -46,7 +62,11 @@ export async function GET(
     return new ChatSDKError('not_found:chat').toResponse();
   }
 
-  if (chat.visibility === 'private' && chat.userId !== session.user.id) {
+  if (
+    chat.visibility === 'private' &&
+    !isAdmin &&
+    chat.userId !== session.user.id
+  ) {
     return new ChatSDKError('forbidden:chat').toResponse();
   }
 

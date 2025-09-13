@@ -6,6 +6,8 @@ import { getChatById, getMessagesByChatId } from '@/lib/db/queries';
 import { DataStreamHandler } from '@/components/data-stream-handler';
 import { DEFAULT_CHAT_MODEL } from '@/lib/ai/models';
 import { convertToUIMessages } from '@/lib/utils';
+import { cookies } from 'next/headers';
+import { verifyAdminToken } from '@/lib/admin-auth';
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -22,7 +24,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     redirect('/api/auth/guest');
   }
 
-  if (chat.visibility === 'private') {
+  const adminToken = cookies().get('admin_session')?.value;
+  const isAdmin = verifyAdminToken(adminToken);
+
+  if (chat.visibility === 'private' && !isAdmin) {
     if (!session.user) {
       return notFound();
     }

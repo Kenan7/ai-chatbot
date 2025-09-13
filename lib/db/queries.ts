@@ -278,6 +278,17 @@ export async function getVotesByChatId({ id }: { id: string }) {
   }
 }
 
+export async function getAllChats() {
+  try {
+    return await db.select().from(chat).orderBy(desc(chat.createdAt));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get all chats',
+    );
+  }
+}
+
 export async function saveDocument({
   id,
   title,
