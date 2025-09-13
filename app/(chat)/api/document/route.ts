@@ -6,6 +6,8 @@ import {
   saveDocument,
 } from '@/lib/db/queries';
 import { ChatSDKError } from '@/lib/errors';
+import { cookies } from 'next/headers';
+import { verifyAdminToken } from '@/lib/admin-auth';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -19,8 +21,10 @@ export async function GET(request: Request) {
   }
 
   const session = await auth();
+  const adminToken = cookies().get('admin_session')?.value;
+  const isAdmin = verifyAdminToken(adminToken);
 
-  if (!session?.user) {
+  if (!session?.user && !isAdmin) {
     return new ChatSDKError('unauthorized:document').toResponse();
   }
 
@@ -32,7 +36,7 @@ export async function GET(request: Request) {
     return new ChatSDKError('not_found:document').toResponse();
   }
 
-  if (document.userId !== session.user.id) {
+  if (!isAdmin && document.userId !== session.user.id) {
     return new ChatSDKError('forbidden:document').toResponse();
   }
 
