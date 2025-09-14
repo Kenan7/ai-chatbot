@@ -50,6 +50,8 @@ export async function GET(
     return new ChatSDKError('unauthorized:chat').toResponse();
   }
 
+  const userId = session?.user?.id;
+
   let chat: Chat;
 
   try {
@@ -65,7 +67,7 @@ export async function GET(
   if (
     chat.visibility === 'private' &&
     !isAdmin &&
-    chat.userId !== session.user.id
+    chat.userId !== userId
   ) {
     return new ChatSDKError('forbidden:chat').toResponse();
   }

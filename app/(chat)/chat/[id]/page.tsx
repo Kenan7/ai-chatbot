@@ -24,7 +24,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     redirect('/api/auth/guest');
   }
 
-  const adminToken = cookies().get('admin_session')?.value;
+  const adminToken = (await cookies()).get('admin_session')?.value;
   const isAdmin = verifyAdminToken(adminToken);
 
   if (chat.visibility === 'private' && !isAdmin) {

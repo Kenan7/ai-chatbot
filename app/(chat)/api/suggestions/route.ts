@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   }
 
   const session = await auth();
-  const adminToken = cookies().get('admin_session')?.value;
+  const adminToken = (await cookies()).get('admin_session')?.value;
   const isAdmin = verifyAdminToken(adminToken);
 
   if (!session?.user && !isAdmin) {
@@ -33,8 +33,13 @@ export async function GET(request: Request) {
     return Response.json([], { status: 200 });
   }
 
-  if (!isAdmin && suggestion.userId !== session.user.id) {
-    return new ChatSDKError('forbidden:api').toResponse();
+  if (!isAdmin) {
+    if (!session?.user) {
+      return new ChatSDKError('unauthorized:suggestions').toResponse();
+    }
+    if (suggestion.userId !== session.user.id) {
+      return new ChatSDKError('forbidden:api').toResponse();
+    }
   }
 
   return Response.json(suggestions, { status: 200 });

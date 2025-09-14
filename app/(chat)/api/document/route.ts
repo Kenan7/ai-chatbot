@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   }
 
   const session = await auth();
-  const adminToken = cookies().get('admin_session')?.value;
+  const adminToken = (await cookies()).get('admin_session')?.value;
   const isAdmin = verifyAdminToken(adminToken);
 
   if (!session?.user && !isAdmin) {
@@ -36,8 +36,13 @@ export async function GET(request: Request) {
     return new ChatSDKError('not_found:document').toResponse();
   }
 
-  if (!isAdmin && document.userId !== session.user.id) {
-    return new ChatSDKError('forbidden:document').toResponse();
+  if (!isAdmin) {
+    if (!session?.user) {
+      return new ChatSDKError('unauthorized:document').toResponse();
+    }
+    if (document.userId !== session.user.id) {
+      return new ChatSDKError('forbidden:document').toResponse();
+    }
   }
 
   return Response.json(documents, { status: 200 });
