@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 
 import './globals.css';
 import { SessionProvider } from 'next-auth/react';
+import { APP_VERSION } from '@/lib/constants';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://sellectad.com'),
@@ -107,6 +108,9 @@ export default async function RootLayout({
         >
           <Toaster position="top-center" />
           <SessionProvider>{children}</SessionProvider>
+          <div className="fixed bottom-2 right-2 z-50 text-s text-gray-400 select-none">
+            {APP_VERSION}
+          </div>
         </ThemeProvider>
       </body>
     </html>
