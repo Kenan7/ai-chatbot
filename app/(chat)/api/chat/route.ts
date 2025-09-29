@@ -37,6 +37,7 @@ import type { ChatModel } from '@/lib/ai/models';
 import type { VisibilityType } from '@/components/visibility-selector';
 import { google } from '@ai-sdk/google';
 import type { Tool } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 
 export const maxDuration = 60;
@@ -198,16 +199,16 @@ export async function POST(request: Request) {
               : [
                   'createDocument',
                   'updateDocument',
-                  'googleSearch',
+                  'file_search',
                 ],
           experimental_transform: smoothStream({ chunking: 'word' }),
           tools: {
             createDocument: createDocument({ session, dataStream }),
             updateDocument: updateDocument({ session, dataStream }),
-            googleSearch: {
-              ...google.tools.googleSearch({}),
-              execute: google.tools.googleSearch({}).execute,
-            } as Tool<any, any>,
+            file_search: openai.tools.fileSearch({
+                vectorStoreIds: ['vs_68c5c6091bfc8191b0d9a19ac5bad219'],
+                maxNumResults: 5,
+            }) as Tool<any, any>,
           },
           experimental_telemetry: {
             isEnabled: true,
