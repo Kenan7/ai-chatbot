@@ -13,6 +13,7 @@ interface SuggestedActionsProps {
   sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
   selectedVisibilityType: VisibilityType;
   setInput: Dispatch<SetStateAction<string>>;
+  input: string;
 }
 
 function PureSuggestedActions({
@@ -20,6 +21,7 @@ function PureSuggestedActions({
   sendMessage,
   selectedVisibilityType,
   setInput,
+  input,
 }: SuggestedActionsProps) {
   const suggestedActions = [
     {
@@ -77,10 +79,16 @@ function PureSuggestedActions({
                 setInput('');
               }}
               onMouseEnter={() => {
-                setInput(suggestedAction.action);
+                // Only prefill when the input is empty so we don't overwrite user-typed text
+                if (input.trim().length === 0) {
+                  setInput(suggestedAction.action);
+                }
               }}
               onMouseLeave={() => {
-                setInput('');
+                // Restore only if we were the ones who prefilled
+                if (input === suggestedAction.action) {
+                  setInput('');
+                }
               }}
               className="relative text-left border rounded-xl px-4 py-3.5 text-sm flex-1 gap-1 sm:flex-col w-full h-auto justify-start items-start hover:bg-accent/50 transition-colors"
             >

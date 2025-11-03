@@ -242,6 +242,7 @@ function PureMultimodalInput({
           chatId={chatId}
           selectedVisibilityType={selectedVisibilityType}
           setInput={setInput}
+          input={input}
         />
         )}
 
