@@ -8,9 +8,7 @@ import './globals.css';
 import { SessionProvider } from 'next-auth/react';
 import { APP_VERSION } from '@/lib/constants';
 import { WhatsAppButton } from '@/components/whatsapp-button';
-import { ClarityAnalytics } from '@/components/clarity-analytics';
-import { MetaPixel } from '@/components/meta-pixel';
-import { LinkedInInsight } from '@/components/linkedin-insight';
+import { Analytics } from '@/components/analytics';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://sellectad.com'),
@@ -106,10 +104,7 @@ export default async function RootLayout({
       </head>
       <body className="antialiased">
         <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID!} />
-
-        <MetaPixel />
-        <LinkedInInsight />
-        <ClarityAnalytics />
+        <Analytics />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
