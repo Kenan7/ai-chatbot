@@ -2,7 +2,6 @@ import { Toaster } from 'sonner';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
-import { GoogleTagManager } from '@next/third-parties/google';
 
 import './globals.css';
 import { SessionProvider } from 'next-auth/react';
@@ -103,7 +102,6 @@ export default async function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID!} />
         <Analytics />
         <ThemeProvider
           attribute="class"
