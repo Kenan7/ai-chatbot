@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { GoogleTagManager } from '@/components/google-tag-manager';
+import { GoogleAnalytics } from '@/components/google-analytics';
 
 const ClarityAnalytics = dynamic(
   () => import('@/components/clarity-analytics').then(mod => ({ default: mod.ClarityAnalytics })),
@@ -22,6 +23,7 @@ export function Analytics() {
   return (
     <>
       <GoogleTagManager />
+      <GoogleAnalytics />
       <MetaPixel />
       <LinkedInInsight />
       <ClarityAnalytics />
