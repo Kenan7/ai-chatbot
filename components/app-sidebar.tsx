@@ -33,13 +33,13 @@ export function AppSidebar({ user }: { user: User | undefined }) {
 
   // Determine which logo to show based on theme
   const getLogoSrc = () => {
-    if (!mounted) return '/images/sellectad-light.png';
+    if (!mounted) return '/images/PGP-ai-logo.png';
     // Only switch to dark logo when the resolved theme is explicitly dark.
     // Custom theme-* variants are all light-base, so they always use the light logo.
     if (resolvedTheme === 'dark') {
-      return '/images/sellectad-dark.png';
+      return '/images/PGP-ai-logo.png';
     }
-    return '/images/sellectad-light.png';
+    return '/images/PGP-ai-logo.png';
   };
 
   return (

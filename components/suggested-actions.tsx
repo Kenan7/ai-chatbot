@@ -25,27 +25,27 @@ function PureSuggestedActions({
 }: SuggestedActionsProps) {
   const suggestedActions = [
     {
-      title: 'I need custom packaging',
-      label: 'for my product line',
-      action: 'I need custom packaging for my product line',
+      title: 'Eco-friendly kits ',
+      label: 'under $30',
+      action: 'Eco-friendly kits under $30',
       icons: [BoxIcon, HomeIcon, InvoiceIcon],
     },
     {
-      title: 'Can you help me',
-      label: 'design branded merch?',
-      action: 'Can you help me design branded merchandise for my business?',
+      title: 'Creative merch',
+      label: 'for IT',
+      action: 'Creative merch for IT companies',
       icons: [SparklesIcon, PencilEditIcon, ImageIcon],
     },
     {
-      title: 'I\'m in the food industry',
-      label: 'what are my packaging options?',
-      action: 'I\'m in the food industry. What kind of packaging do you offer?',
+      title: 'Items in stock',
+      label: 'locally',
+      action: 'What eco-friendly packaging items are in stock locally?',
       icons: [InvoiceIcon, BoxIcon, PaperclipIcon],
     },
     {
-      title: 'I already have a logo',
-      label: 'can you apply it to mockups?',
-      action: 'I already have a logo. Can you apply it to some packaging mockups?',
+      title: 'Exclusive items',
+      label: '',
+      action: 'Show me exclusive items',
       icons: [LogoOpenAI, FileIcon, ImageIcon],
     },
   ];

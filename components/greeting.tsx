@@ -2,12 +2,9 @@ import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 
 const greetings = [
-  "Your brand. Our magic.",
-  "Ideas to reality. Instantly.",
-  "Think it. Build it. Ship it.",
-  "Creative solutions. AI powered.",
-  "From concept to creation.",
-  "Your vision. Our execution."
+  "Turn your vague ideas into reality instantly.",
+  "Turn your logo into premium merch instantly.",
+  "Turn your tight budget into the perfect gift instantly.",
 ];
 
 export const Greeting = () => {
@@ -77,7 +74,7 @@ export const Greeting = () => {
         transition={{ delay: 0.6 }}
         className="text-2xl text-zinc-500"
       >
-        Tell me what you need, we&apos;ll handle the rest.
+        Describe your event, budget, or vibe. We’ll instantly generate product ideas and apply your logo.
       </motion.div>
     </div>
   );
